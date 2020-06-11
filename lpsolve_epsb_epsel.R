@@ -100,8 +100,9 @@ p_score_min_model <- MIPModel() %>%
 
 p_score_min_solver <- p_score_min_model %>% 
     solve_model(with_ROI(solver = "lpsolve", 
-                         verbose = TRUE
-                         ) 
+                         verbose = TRUE,
+                         control = list("epsb" = 1e-20,
+                                        "epsel" = 1e-20)) 
     )
 
 p_score_boundry <- p_score_min_solver %>% 
@@ -139,8 +140,10 @@ q_score_max_model <- p_score_min_model %>%
 
 q_score_max_solver <- q_score_max_model %>% 
     solve_model(with_ROI(solver = "lpsolve", 
-                         verbose = TRUE
-                         ) 
+                         verbose = TRUE,
+                         control = list("epsb" = 1e-20,
+                                        "epsel" = 1e-20)
+    ) 
     )
 
 q_score_boundry <- q_score_max_solver %>% 
@@ -152,11 +155,11 @@ q_score_output <- q_score_max_solver %>%
     dplyr::filter(value > 0)
 
 
-# Below results are incorrect, the output should be same as p_score_output data as there are no ties for up to 4 decimal places. Seems like the p_score_boundry is not working correctly
+# Below results are correct, however this could be complete coincidence. If data changes then results could change
 
 q_score_output 
 
-# expected output is for all even J elements I should be 1 and for all odd J elements I should be 3
+
 
 
 
@@ -167,8 +170,10 @@ q_score_output
 
 initial_result_tbl <- q_score_max_model %>% 
     solve_model(with_ROI(solver = "lpsolve", 
-                         verbose = TRUE
-                         )
+                         verbose = TRUE,
+                         control = list("epsb" = 1e-20,
+                                        "epsel" = 1e-20)
+    )
     )  %>%
     get_solution(x[i , j]) %>% 
     # dplyr::filter(value > 0) %>% 
@@ -209,8 +214,10 @@ while(model_status == "optimal" ) {
         ) %>%
         
         solve_model(with_ROI(solver = "lpsolve", 
-                             verbose = TRUE
-                             )
+                             verbose = TRUE,
+                             control = list("epsb" = 1e-20,
+                                            "epsel" = 1e-20)
+        )
         )
     
     model_status <- tmp_out_solve %>% 
@@ -245,7 +252,7 @@ output_tbl <- output_tbl %>%
     dplyr::filter(value >0) 
 
 
-output_tbl # This output is not as expected as either and completely different
+output_tbl # This output is not as expected for some reason the constrains for P score and Q score doesn't seems to work: IN this data set the p score is not same for any of the elements in column I
 
 
 # Outputs ------
