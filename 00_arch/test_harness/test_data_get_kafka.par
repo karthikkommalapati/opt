@@ -1,0 +1,3 @@
+{"mandatorCode": "022", "businessDate": "2026-05-07", "reconciliationGroupId": "5001", "trade": {"id": "T001", "amount": 100.0}}
+{"mandatorCode": "022", "businessDate": "2026-05-07", "reconciliationGroupId": "5001", "trade": {"id": "T002", "amount": 200.0}}
+{"mandatorCode": "022", "businessDate": "2026-05-07", "reconciliationGroupId": "5001", "trade": {"id": "T003", "amount": 300.0}}

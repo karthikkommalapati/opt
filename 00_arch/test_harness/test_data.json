@@ -1,0 +1,38 @@
+[
+  {
+    "status": {
+      "mandatorCode": "022",
+      "businessDate": "2026-05-07",
+      "reconciliationGroupId": 5001,
+      "instanceIndex": 0,
+      "totalInstances": 3,
+      "numberOfMessagesPublished": 15000
+    },
+    "producer": "CLIENT_STRUCTURES",
+    "eventTimestamp": "2026-05-07T17:00:00+0000"
+  },
+  {
+    "status": {
+      "mandatorCode": "022",
+      "businessDate": "2026-05-07",
+      "reconciliationGroupId": 5001,
+      "instanceIndex": 1,
+      "totalInstances": 3,
+      "numberOfMessagesPublished": 16000
+    },
+    "producer": "CLIENT_STRUCTURES",
+    "eventTimestamp": "2026-05-07T17:01:00+0000"
+  },
+  {
+    "status": {
+      "mandatorCode": "022",
+      "businessDate": "2026-05-07",
+      "reconciliationGroupId": 5001,
+      "instanceIndex": 2,
+      "totalInstances": 3,
+      "numberOfMessagesPublished": 16823
+    },
+    "producer": "CLIENT_STRUCTURES",
+    "eventTimestamp": "2026-05-07T17:02:00+0000"
+  }
+]

@@ -1,0 +1,1420 @@
+
+============================================================
+  Scenario 1 — Happy Path
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : ['mandatorCode', 'businessDate', 'reconciliationGroupId']
+[INFO] METADATA_FILTER_FIELD_MAP      : {'mandator': 'mandatorCode', 'business_date': 'businessDate', 'reconciliation_group_id': 'reconciliationGroupId'}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 10.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.05
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 30
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata file loaded successfully from: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata fields: ['export_datetime', 'business_date', 'mandator', 'producer_name', 'feed_name', 'reconciliation_group_id', 'instances_counted', 'total_expected_instances', 'total_messages_published']
+[INFO] Metadata values: {'export_datetime': '2026-05-07T17:00:00', 'business_date': '2026-05-07', 'mandator': '022', 'producer_name': 'CLIENT_STRUCTURES', 'feed_name': 'CPSB4Q00', 'reconciliation_group_id': '5001', 'instances_counted': '3', 'total_expected_instances': '3', 'total_messages_published': '3'}
+[INFO] Filter built: kafka_field='mandatorCode' expected_value='022' (sourced from metadata field 'mandator')
+[INFO] Filter built: kafka_field='businessDate' expected_value='2026-05-07' (sourced from metadata field 'business_date')
+[INFO] Filter built: kafka_field='reconciliationGroupId' expected_value='5001' (sourced from metadata field 'reconciliation_group_id')
+[INFO] Expected message count from metadata: 3 (field 'total_messages_published' in /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt)
+[INFO] Active filters (3): {'mandatorCode': '022', 'businessDate': '2026-05-07', 'reconciliationGroupId': '5001'}
+[INFO] Retry policy: max 0.05h, interval 30s, tolerance ±10.0%
+[INFO] Connection sucessful
+[INFO] checking partitions for topic inflow-topic-022
+[INFO] partition_request (<class 'list'>): [TopicPartition(topic='inflow-topic-022', partition=0)]
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] all_stop_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): None}
+[INFO] partition_start_ts: [(TopicPartition(topic='inflow-topic-022', partition=0), 1778104800000)]
+[INFO] all_start_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): OffsetAndTimestamp(offset=0, timestamp=1778140800000)}
+[INFO] INFO: Get registry for inflow-topic-022
+[INFO] Using url https://fake-registry:8086/subjects/inflow-topic-022-value/versions/latest
+[INFO] Schema version found: 1
+[INFO] Schema id found: 42
+[INFO] INFO: Setting previous schema to latest only 1 version inflow-topic-022
+[INFO] schema version {'type': 'record', 'name': 'TradeMessage', 'namespace': 'com.test', 'fields': []}
+[INFO] --- Collection attempt 1 started at 2026-05-09 12:00:31 ---
+[INFO] Assigned partition 0
+[INFO] Reassigned partition 0 successfully
+[INFO] start_ts 1778140800000 1778104800.0
+[INFO] start_offset 0, start_ts 1778140800000
+[INFO] partition: 0
+[INFO] first message found for start 0: 2026-05-07-10.00.00
+[INFO] Last candidate message for stop point has offset 2
+[INFO] Seeking partition 0 to start_offset=0 (attempt 1)
+[INFO] Seek to offset 0 successful
+[INFO] Expected 3 messages in time window for partition 0
+[INFO] Current offset after seek: 0
+[INFO] Writing filtered messages to temp file: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Schema_id changed to 42
+[INFO] Reached end offset for partition 0: offset=2
+[INFO] Partition 0 done: total_seen=3, filtered_written=3
+[INFO] Attempt 1 complete: total_messages_seen_in_window=3, messages_matching_all_filters=3
+[INFO] ======================================================================
+[INFO] COUNT VALIDATION REPORT
+[INFO]   Source of expected count : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO]   Expected count (metadata): 3
+[INFO]   Actual filtered count    : 3
+[INFO]   Absolute difference      : 0 (+0)
+[INFO]   Percentage difference    : 0.0000% equal than expected
+[INFO]   Tolerance                : ±10.0%
+[INFO]   Acceptable range         : [3, 3]
+[INFO]   Result: EXACT MATCH — 3 messages
+[INFO] ======================================================================
+[INFO] Count validation PASSED on attempt 1. Promoting temp file to .par file.
+[INFO] Temp file promoted: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp → /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] Temp file no longer present at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Committing offsets for 1 partition(s) after successful .par write.
+[INFO] Committed partition 0 at offset 2
+[INFO] All offsets committed. Data successfully consumed and written.
+  [PASS]  exit code = 0
+  [PASS]  .par file written with 3 line(s)
+         path: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+         {"mandatorCode": "022", "businessDate": "2026-05-07", "reconciliationGroupId": "
+         {"mandatorCode": "022", "businessDate": "2026-05-07", "reconciliationGroupId": "
+         {"mandatorCode": "022", "businessDate": "2026-05-07", "reconciliationGroupId": "
+  [PASS]  temp file cleaned up
+
+============================================================
+  Scenario 2 — Count Within Tolerance
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : ['mandatorCode', 'businessDate', 'reconciliationGroupId']
+[INFO] METADATA_FILTER_FIELD_MAP      : {'mandator': 'mandatorCode', 'business_date': 'businessDate', 'reconciliation_group_id': 'reconciliationGroupId'}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 50.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.05
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 30
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata file loaded successfully from: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata fields: ['export_datetime', 'business_date', 'mandator', 'producer_name', 'feed_name', 'reconciliation_group_id', 'instances_counted', 'total_expected_instances', 'total_messages_published']
+[INFO] Metadata values: {'export_datetime': '2026-05-07T17:00:00', 'business_date': '2026-05-07', 'mandator': '022', 'producer_name': 'CLIENT_STRUCTURES', 'feed_name': 'CPSB4Q00', 'reconciliation_group_id': '5001', 'instances_counted': '3', 'total_expected_instances': '3', 'total_messages_published': '4'}
+[INFO] Filter built: kafka_field='mandatorCode' expected_value='022' (sourced from metadata field 'mandator')
+[INFO] Filter built: kafka_field='businessDate' expected_value='2026-05-07' (sourced from metadata field 'business_date')
+[INFO] Filter built: kafka_field='reconciliationGroupId' expected_value='5001' (sourced from metadata field 'reconciliation_group_id')
+[INFO] Expected message count from metadata: 4 (field 'total_messages_published' in /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt)
+[INFO] Active filters (3): {'mandatorCode': '022', 'businessDate': '2026-05-07', 'reconciliationGroupId': '5001'}
+[INFO] Retry policy: max 0.05h, interval 30s, tolerance ±50.0%
+[INFO] Connection sucessful
+[INFO] checking partitions for topic inflow-topic-022
+[INFO] partition_request (<class 'list'>): [TopicPartition(topic='inflow-topic-022', partition=0)]
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] all_stop_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): None}
+[INFO] partition_start_ts: [(TopicPartition(topic='inflow-topic-022', partition=0), 1778104800000)]
+[INFO] all_start_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): OffsetAndTimestamp(offset=0, timestamp=1778140800000)}
+[INFO] INFO: Get registry for inflow-topic-022
+[INFO] Using url https://fake-registry:8086/subjects/inflow-topic-022-value/versions/latest
+[INFO] Schema version found: 1
+[INFO] Schema id found: 42
+[INFO] INFO: Setting previous schema to latest only 1 version inflow-topic-022
+[INFO] schema version {'type': 'record', 'name': 'TradeMessage', 'namespace': 'com.test', 'fields': []}
+[INFO] --- Collection attempt 1 started at 2026-05-09 12:00:31 ---
+[INFO] Assigned partition 0
+[INFO] Reassigned partition 0 successfully
+[INFO] start_ts 1778140800000 1778104800.0
+[INFO] start_offset 0, start_ts 1778140800000
+[INFO] partition: 0
+[INFO] first message found for start 0: 2026-05-07-10.00.00
+[INFO] Last candidate message for stop point has offset 2
+[INFO] Seeking partition 0 to start_offset=0 (attempt 1)
+[INFO] Seek to offset 0 successful
+[INFO] Expected 3 messages in time window for partition 0
+[INFO] Current offset after seek: 0
+[INFO] Writing filtered messages to temp file: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Schema_id changed to 42
+[INFO] Reached end offset for partition 0: offset=2
+[INFO] Partition 0 done: total_seen=3, filtered_written=3
+[INFO] Attempt 1 complete: total_messages_seen_in_window=3, messages_matching_all_filters=3
+[INFO] ======================================================================
+[INFO] COUNT VALIDATION REPORT
+[INFO]   Source of expected count : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO]   Expected count (metadata): 4
+[INFO]   Actual filtered count    : 3
+[INFO]   Absolute difference      : 1 (-1)
+[INFO]   Percentage difference    : 25.0000% lower than expected
+[INFO]   Tolerance                : ±50.0%
+[INFO]   Acceptable range         : [2, 6]
+[INFO]   Result: WITHIN TOLERANCE — actual is 25.0000% lower than expected (tolerance ±50.0%)
+[INFO] ======================================================================
+[INFO] Count validation PASSED on attempt 1. Promoting temp file to .par file.
+[INFO] Temp file promoted: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp → /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] Temp file no longer present at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Committing offsets for 1 partition(s) after successful .par write.
+[INFO] Committed partition 0 at offset 2
+[INFO] All offsets committed. Data successfully consumed and written.
+  [PASS]  exit code = 0
+  [PASS]  .par written with 3 line(s) (expected 3)
+         path: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+
+============================================================
+  Scenario 3 — No Filter Columns (all messages pass)
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : []
+[INFO] METADATA_FILTER_FIELD_MAP      : {}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 10.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.05
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 30
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata file loaded successfully from: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata fields: ['export_datetime', 'business_date', 'mandator', 'producer_name', 'feed_name', 'reconciliation_group_id', 'instances_counted', 'total_expected_instances', 'total_messages_published']
+[INFO] Metadata values: {'export_datetime': '2026-05-07T17:00:00', 'business_date': '2026-05-07', 'mandator': '022', 'producer_name': 'CLIENT_STRUCTURES', 'feed_name': 'CPSB4Q00', 'reconciliation_group_id': '5001', 'instances_counted': '3', 'total_expected_instances': '3', 'total_messages_published': '3'}
+[INFO] Expected message count from metadata: 3 (field 'total_messages_published' in /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt)
+[INFO] Active filters (0): {}
+[INFO] Retry policy: max 0.05h, interval 30s, tolerance ±10.0%
+[INFO] Connection sucessful
+[INFO] checking partitions for topic inflow-topic-022
+[INFO] partition_request (<class 'list'>): [TopicPartition(topic='inflow-topic-022', partition=0)]
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] all_stop_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): None}
+[INFO] partition_start_ts: [(TopicPartition(topic='inflow-topic-022', partition=0), 1778104800000)]
+[INFO] all_start_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): OffsetAndTimestamp(offset=0, timestamp=1778140800000)}
+[INFO] INFO: Get registry for inflow-topic-022
+[INFO] Using url https://fake-registry:8086/subjects/inflow-topic-022-value/versions/latest
+[INFO] Schema version found: 1
+[INFO] Schema id found: 42
+[INFO] INFO: Setting previous schema to latest only 1 version inflow-topic-022
+[INFO] schema version {'type': 'record', 'name': 'TradeMessage', 'namespace': 'com.test', 'fields': []}
+[INFO] --- Collection attempt 1 started at 2026-05-09 12:00:31 ---
+[INFO] Assigned partition 0
+[INFO] Reassigned partition 0 successfully
+[INFO] start_ts 1778140800000 1778104800.0
+[INFO] start_offset 0, start_ts 1778140800000
+[INFO] partition: 0
+[INFO] first message found for start 0: 2026-05-07-10.00.00
+[INFO] Last candidate message for stop point has offset 2
+[INFO] Seeking partition 0 to start_offset=0 (attempt 1)
+[INFO] Seek to offset 0 successful
+[INFO] Expected 3 messages in time window for partition 0
+[INFO] Current offset after seek: 0
+[INFO] Writing filtered messages to temp file: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Schema_id changed to 42
+[INFO] Reached end offset for partition 0: offset=2
+[INFO] Partition 0 done: total_seen=3, filtered_written=3
+[INFO] Attempt 1 complete: total_messages_seen_in_window=3, messages_matching_all_filters=3
+[INFO] ======================================================================
+[INFO] COUNT VALIDATION REPORT
+[INFO]   Source of expected count : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO]   Expected count (metadata): 3
+[INFO]   Actual filtered count    : 3
+[INFO]   Absolute difference      : 0 (+0)
+[INFO]   Percentage difference    : 0.0000% equal than expected
+[INFO]   Tolerance                : ±10.0%
+[INFO]   Acceptable range         : [3, 3]
+[INFO]   Result: EXACT MATCH — 3 messages
+[INFO] ======================================================================
+[INFO] Count validation PASSED on attempt 1. Promoting temp file to .par file.
+[INFO] Temp file promoted: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp → /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] Temp file no longer present at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Committing offsets for 1 partition(s) after successful .par write.
+[INFO] Committed partition 0 at offset 2
+[INFO] All offsets committed. Data successfully consumed and written.
+  [PASS]  exit code = 0
+  [PASS]  .par written with 3 line(s) (expected 3)
+
+============================================================
+  Scenario 4 — Metadata File Missing
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : ['mandatorCode', 'businessDate', 'reconciliationGroupId']
+[INFO] METADATA_FILTER_FIELD_MAP      : {'mandator': 'mandatorCode', 'business_date': 'businessDate', 'reconciliation_group_id': 'reconciliationGroupId'}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 10.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.05
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 30
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[ERROR] METADATA FILE NOT FOUND: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt  The trigger-based status-messages script must complete successfully before this script runs. Cannot continue without the metadata file.
+  [PASS]  exit code = 1 (correct hard stop)
+  [PASS]  .par file NOT written (correct)
+
+============================================================
+  Scenario 5 — Metadata File: 1 Line (no data row)
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : ['mandatorCode', 'businessDate', 'reconciliationGroupId']
+[INFO] METADATA_FILTER_FIELD_MAP      : {'mandator': 'mandatorCode', 'business_date': 'businessDate', 'reconciliation_group_id': 'reconciliationGroupId'}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 10.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.05
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 30
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[ERROR] Metadata file /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt has 1 non-blank line(s) — expected exactly 2 (header row + 1 data row). File may be incomplete or empty.
+  [PASS]  exit code = 1 (correct hard stop)
+
+============================================================
+  Scenario 6 — Metadata File: Extra Data Row
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : ['mandatorCode', 'businessDate', 'reconciliationGroupId']
+[INFO] METADATA_FILTER_FIELD_MAP      : {'mandator': 'mandatorCode', 'business_date': 'businessDate', 'reconciliation_group_id': 'reconciliationGroupId'}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 10.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.05
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 30
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[ERROR] Metadata file /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt has 3 non-blank lines — expected exactly 2 (header row + 1 data row). Multiple data rows are not permitted; the file may have been appended incorrectly. Data rows found: 2. Remove the extra rows and rerun.
+  [PASS]  exit code = 1 (correct hard stop)
+
+============================================================
+  Scenario 7 — Metadata Count Field Not an Integer
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : ['mandatorCode', 'businessDate', 'reconciliationGroupId']
+[INFO] METADATA_FILTER_FIELD_MAP      : {'mandator': 'mandatorCode', 'business_date': 'businessDate', 'reconciliation_group_id': 'reconciliationGroupId'}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 10.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.05
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 30
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata file loaded successfully from: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata fields: ['export_datetime', 'business_date', 'mandator', 'producer_name', 'feed_name', 'reconciliation_group_id', 'instances_counted', 'total_expected_instances', 'total_messages_published']
+[INFO] Metadata values: {'export_datetime': '2026-05-07T17:00:00', 'business_date': '2026-05-07', 'mandator': '022', 'producer_name': 'CLIENT_STRUCTURES', 'feed_name': 'CPSB4Q00', 'reconciliation_group_id': '5001', 'instances_counted': '3', 'total_expected_instances': '3', 'total_messages_published': 'N/A'}
+[INFO] Filter built: kafka_field='mandatorCode' expected_value='022' (sourced from metadata field 'mandator')
+[INFO] Filter built: kafka_field='businessDate' expected_value='2026-05-07' (sourced from metadata field 'business_date')
+[INFO] Filter built: kafka_field='reconciliationGroupId' expected_value='5001' (sourced from metadata field 'reconciliation_group_id')
+[ERROR] Count field 'total_messages_published' value 'N/A' is not a valid integer.
+  [PASS]  exit code = 1 (correct hard stop)
+
+============================================================
+  Scenario 8 — Filter Column Has No Mapping
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : ['mandatorCode', 'unknownField']
+[INFO] METADATA_FILTER_FIELD_MAP      : {'mandator': 'mandatorCode'}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 10.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.05
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 30
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata file loaded successfully from: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata fields: ['export_datetime', 'business_date', 'mandator', 'producer_name', 'feed_name', 'reconciliation_group_id', 'instances_counted', 'total_expected_instances', 'total_messages_published']
+[INFO] Metadata values: {'export_datetime': '2026-05-07T17:00:00', 'business_date': '2026-05-07', 'mandator': '022', 'producer_name': 'CLIENT_STRUCTURES', 'feed_name': 'CPSB4Q00', 'reconciliation_group_id': '5001', 'instances_counted': '3', 'total_expected_instances': '3', 'total_messages_published': '3'}
+[INFO] Filter built: kafka_field='mandatorCode' expected_value='022' (sourced from metadata field 'mandator')
+[ERROR] Filter column 'unknownField' listed in METADATA_FILTER_COLUMNS has no entry in METADATA_FILTER_FIELD_MAP. Cannot build filter. Add a mapping 'unknownField' -> '<metadata_field_name>' to METADATA_FILTER_FIELD_MAP.
+  [PASS]  exit code = 1 (correct hard stop)
+
+============================================================
+  Scenario 9 — Partial Filter Match (wrong mandator on 1 message)
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : ['mandatorCode', 'businessDate', 'reconciliationGroupId']
+[INFO] METADATA_FILTER_FIELD_MAP      : {'mandator': 'mandatorCode', 'business_date': 'businessDate', 'reconciliation_group_id': 'reconciliationGroupId'}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 10.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.05
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 30
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata file loaded successfully from: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata fields: ['export_datetime', 'business_date', 'mandator', 'producer_name', 'feed_name', 'reconciliation_group_id', 'instances_counted', 'total_expected_instances', 'total_messages_published']
+[INFO] Metadata values: {'export_datetime': '2026-05-07T17:00:00', 'business_date': '2026-05-07', 'mandator': '022', 'producer_name': 'CLIENT_STRUCTURES', 'feed_name': 'CPSB4Q00', 'reconciliation_group_id': '5001', 'instances_counted': '3', 'total_expected_instances': '3', 'total_messages_published': '2'}
+[INFO] Filter built: kafka_field='mandatorCode' expected_value='022' (sourced from metadata field 'mandator')
+[INFO] Filter built: kafka_field='businessDate' expected_value='2026-05-07' (sourced from metadata field 'business_date')
+[INFO] Filter built: kafka_field='reconciliationGroupId' expected_value='5001' (sourced from metadata field 'reconciliation_group_id')
+[INFO] Expected message count from metadata: 2 (field 'total_messages_published' in /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt)
+[INFO] Active filters (3): {'mandatorCode': '022', 'businessDate': '2026-05-07', 'reconciliationGroupId': '5001'}
+[INFO] Retry policy: max 0.05h, interval 30s, tolerance ±10.0%
+[INFO] Connection sucessful
+[INFO] checking partitions for topic inflow-topic-022
+[INFO] partition_request (<class 'list'>): [TopicPartition(topic='inflow-topic-022', partition=0)]
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] all_stop_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): None}
+[INFO] partition_start_ts: [(TopicPartition(topic='inflow-topic-022', partition=0), 1778104800000)]
+[INFO] all_start_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): OffsetAndTimestamp(offset=0, timestamp=1778140800000)}
+[INFO] INFO: Get registry for inflow-topic-022
+[INFO] Using url https://fake-registry:8086/subjects/inflow-topic-022-value/versions/latest
+[INFO] Schema version found: 1
+[INFO] Schema id found: 42
+[INFO] INFO: Setting previous schema to latest only 1 version inflow-topic-022
+[INFO] schema version {'type': 'record', 'name': 'TradeMessage', 'namespace': 'com.test', 'fields': []}
+[INFO] --- Collection attempt 1 started at 2026-05-09 12:00:31 ---
+[INFO] Assigned partition 0
+[INFO] Reassigned partition 0 successfully
+[INFO] start_ts 1778140800000 1778104800.0
+[INFO] start_offset 0, start_ts 1778140800000
+[INFO] partition: 0
+[INFO] first message found for start 0: 2026-05-07-10.00.00
+[INFO] Last candidate message for stop point has offset 2
+[INFO] Seeking partition 0 to start_offset=0 (attempt 1)
+[INFO] Seek to offset 0 successful
+[INFO] Expected 3 messages in time window for partition 0
+[INFO] Current offset after seek: 0
+[INFO] Writing filtered messages to temp file: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Schema_id changed to 42
+[INFO] Reached end offset for partition 0: offset=2
+[INFO] Partition 0 done: total_seen=3, filtered_written=2
+[INFO] Attempt 1 complete: total_messages_seen_in_window=3, messages_matching_all_filters=2
+[INFO] ======================================================================
+[INFO] COUNT VALIDATION REPORT
+[INFO]   Source of expected count : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO]   Expected count (metadata): 2
+[INFO]   Actual filtered count    : 2
+[INFO]   Absolute difference      : 0 (+0)
+[INFO]   Percentage difference    : 0.0000% equal than expected
+[INFO]   Tolerance                : ±10.0%
+[INFO]   Acceptable range         : [2, 2]
+[INFO]   Result: EXACT MATCH — 2 messages
+[INFO] ======================================================================
+[INFO] Count validation PASSED on attempt 1. Promoting temp file to .par file.
+[INFO] Temp file promoted: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp → /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] Temp file no longer present at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Committing offsets for 1 partition(s) after successful .par write.
+[INFO] Committed partition 0 at offset 2
+[INFO] All offsets committed. Data successfully consumed and written.
+  [PASS]  exit code = 0
+  [PASS]  .par written with 2 line(s) (expected 2)
+  [PASS]  all written lines have mandatorCode=022
+
+============================================================
+  Scenario 10 — Count Outside Tolerance (retry exhausted)
+============================================================
+[INFO] Get Kafka logging to be stored at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs/CPSB4QST.2026-05-07.99999.TEST001_getKafka.log
+[INFO] OSLogRateLimit=64
+[INFO] MallocNanoZone=0
+[INFO] USER=karthikkommalapati
+[INFO] COMMAND_MODE=unix2003
+[INFO] __CFBundleIdentifier=com.microsoft.VSCode
+[INFO] PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/debugCommand:/Users/karthikkommalapati/Library/Application Support/Code/User/globalStorage/github.copilot-chat/copilotCli:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Users/karthikkommalapati/.local/share/zinit/polaris/bin:/Users/karthikkommalapati/.cargo/bin:/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/scripts/noConfigScripts
+[INFO] LOGNAME=karthikkommalapati
+[INFO] SSH_AUTH_SOCK=/var/run/com.apple.launchd.U93VO3O45Z/Listeners
+[INFO] HOME=/Users/karthikkommalapati
+[INFO] SHELL=/bin/zsh
+[INFO] TMPDIR=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/
+[INFO] __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x2
+[INFO] XPC_SERVICE_NAME=0
+[INFO] XPC_FLAGS=0x0
+[INFO] SHLVL=2
+[INFO] PWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new
+[INFO] OLDPWD=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_harness
+[INFO] LANG=C.UTF-8
+[INFO] HOMEBREW_PREFIX=/opt/homebrew
+[INFO] HOMEBREW_CELLAR=/opt/homebrew/Cellar
+[INFO] HOMEBREW_REPOSITORY=/opt/homebrew
+[INFO] INFOPATH=/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:/opt/homebrew/share/info:
+[INFO] ZPFX=/Users/karthikkommalapati/.local/share/zinit/polaris
+[INFO] ZSH_CACHE_DIR=/Users/karthikkommalapati/.cache/zinit
+[INFO] PMSPEC=0uUpiPsf
+[INFO] _P9K_SSH_TTY=/dev/ttys003
+[INFO] TERM_PROGRAM=vscode
+[INFO] TERM_PROGRAM_VERSION=1.119.0
+[INFO] COLORTERM=truecolor
+[INFO] CLAUDE_CODE_SSE_PORT=30772
+[INFO] PYDEVD_DISABLE_FILE_VALIDATION=1
+[INFO] VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/.noConfigDebugAdapterEndpoints/endpoint-2c36a5e4bac62f30.txt
+[INFO] BUNDLED_DEBUGPY_PATH=/Users/karthikkommalapati/.vscode/extensions/ms-python.debugpy-2026.6.0-darwin-arm64/bundled/libs/debugpy
+[INFO] GIT_ASKPASS=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass.sh
+[INFO] VSCODE_GIT_ASKPASS_NODE=/Applications/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)
+[INFO] VSCODE_GIT_ASKPASS_EXTRA_ARGS=
+[INFO] VSCODE_GIT_ASKPASS_MAIN=/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/git/dist/askpass-main.js
+[INFO] VSCODE_GIT_IPC_HANDLE=/var/folders/10/qfhlww8j02v3qr249kktc3wh0000gn/T/vscode-git-1ecd8c2143.sock
+[INFO] PYTHONSTARTUP=/Users/karthikkommalapati/Library/Application Support/Code/User/workspaceStorage/5730c9795c71ae858f4a8978b273070e/ms-python.python/pythonrc.py
+[INFO] PYTHON_BASIC_REPL=1
+[INFO] VSCODE_INJECTION=1
+[INFO] VSCODE_NONCE=3d83b23a-846b-4867-8b10-d470043ca510
+[INFO] ZDOTDIR=/Users/karthikkommalapati
+[INFO] USER_ZDOTDIR=/Users/karthikkommalapati
+[INFO] TERM=xterm-256color
+[INFO] VSCODE_PROFILE_INITIALIZED=1
+[INFO] P9K_SSH=0
+[INFO] FPATH=/Users/karthikkommalapati/.docker/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/Users/karthikkommalapati/.docker/completions:/Users/karthikkommalapati/.cache/zinit/completions:/Users/karthikkommalapati/.local/share/zinit/completions:/opt/homebrew/share/zsh/site-functions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src:/Users/karthikkommalapati/.local/share/zinit/plugins/Aloxaf---fzf-tab/lib:/Users/karthikkommalapati/.local/share/zinit/plugins/zsh-users---zsh-completions/src
+[INFO] PS1=(ubs-projects) %m%# 
+[INFO] VSCODE_PYTHON_AUTOACTIVATE_GUARD=1
+[INFO] P9K_TTY=old
+[INFO] _P9K_TTY=/dev/ttys003
+[INFO] VIRTUAL_ENV=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv
+[INFO] VIRTUAL_ENV_PROMPT=ubs-projects
+[INFO] NoDefaultCurrentDirectoryInExePath=1
+[INFO] COREPACK_ENABLE_AUTO_PIN=0
+[INFO] AI_AGENT=claude-code/2.1.126/agent
+[INFO] CLAUDE_CODE_ENTRYPOINT=cli
+[INFO] OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+[INFO] GIT_EDITOR=true
+[INFO] CLAUDECODE=1
+[INFO] CLAUDE_CODE_EXECPATH=/opt/homebrew/Caskroom/claude-code/2.1.126/claude
+[INFO] _=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/.venv/bin/python3
+[INFO] SDA=BST
+[INFO] SDA_HOME=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka
+[INFO] FEED_NAME=CPSB4QST
+[INFO] BST_ASOF_DT=2026-05-07
+[INFO] BST_ITERATION_NR=1
+[INFO] BST_KNW_FRO_TS=2026-05-07-23.59.59
+[INFO] BST_USR_VAL=0
+[INFO] DSF_MANDATOR=022
+[INFO] DSF_DOMAIN=T
+[INFO] DSF_CHARMAP=UTF-8
+[INFO] DSF_JAVA_TZ=UTC
+[INFO] DSF_MAIN_ID=1001
+[INFO] CFG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/config
+[INFO] PC_LOD_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data
+[INFO] LOG_PROC_PATH=/Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/logs
+[INFO] PARENT_PID=99999
+[INFO] AUDIT_ID=TEST001
+[INFO] No location specific time window found for mandator 022. Using default values
+[INFO] STATUS_MESSAGES_FEED_NAME      : CPSB4Q00
+[INFO] METADATA_FILE_SUFFIX           : _metadata.txt
+[INFO] METADATA_FILTER_COLUMNS        : ['mandatorCode', 'businessDate', 'reconciliationGroupId']
+[INFO] METADATA_FILTER_FIELD_MAP      : {'mandator': 'mandatorCode', 'business_date': 'businessDate', 'reconciliation_group_id': 'reconciliationGroupId'}
+[INFO] METADATA_COUNT_FIELD           : total_messages_published
+[INFO] METADATA_COUNT_TOLERANCE_PCT   : 10.0%
+[INFO] METADATA_RETRY_MAX_HOURS       : 0.0
+[INFO] METADATA_RETRY_INTERVAL_SECONDS: 0
+[INFO] Starting: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/00_get_kafka.py
+[INFO] INFLOW_TOPIC: inflow-topic-022
+[INFO] KAFKA_BROKER: fake-broker:9092
+[INFO] INFO: SSL_DIR /etc/ssl/admin
+[INFO] DT_UTC_START: 2026-05-07 00:00:00: TS_UTC_START: 1778104800.0
+[INFO] DT_UTC_END: 2026-05-07 23:59:59: TS_UTC_END: 1778191199.0
+[INFO] DT_UTC: 2026-05-07
+[INFO] DATA_FOLDER: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/
+[INFO] DATA_FILE: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par
+[INFO] LOG_FILE_NAME: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par_log.json
+[INFO] METADATA_FILE_PATH (looking here for metadata): /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] TEMP_DATA_FILE (intermediate write location)  : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Looking for metadata file at: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata file loaded successfully from: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO] Metadata fields: ['export_datetime', 'business_date', 'mandator', 'producer_name', 'feed_name', 'reconciliation_group_id', 'instances_counted', 'total_expected_instances', 'total_messages_published']
+[INFO] Metadata values: {'export_datetime': '2026-05-07T17:00:00', 'business_date': '2026-05-07', 'mandator': '022', 'producer_name': 'CLIENT_STRUCTURES', 'feed_name': 'CPSB4Q00', 'reconciliation_group_id': '5001', 'instances_counted': '3', 'total_expected_instances': '3', 'total_messages_published': '100'}
+[INFO] Filter built: kafka_field='mandatorCode' expected_value='022' (sourced from metadata field 'mandator')
+[INFO] Filter built: kafka_field='businessDate' expected_value='2026-05-07' (sourced from metadata field 'business_date')
+[INFO] Filter built: kafka_field='reconciliationGroupId' expected_value='5001' (sourced from metadata field 'reconciliation_group_id')
+[INFO] Expected message count from metadata: 100 (field 'total_messages_published' in /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt)
+[INFO] Active filters (3): {'mandatorCode': '022', 'businessDate': '2026-05-07', 'reconciliationGroupId': '5001'}
+[INFO] Retry policy: max 0.0h, interval 0s, tolerance ±10.0%
+[INFO] Connection sucessful
+[INFO] checking partitions for topic inflow-topic-022
+[INFO] partition_request (<class 'list'>): [TopicPartition(topic='inflow-topic-022', partition=0)]
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] partitions (<class 'set'>): {TopicPartition(topic='inflow-topic-022', partition=0)}
+[INFO] all_stop_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): None}
+[INFO] partition_start_ts: [(TopicPartition(topic='inflow-topic-022', partition=0), 1778104800000)]
+[INFO] all_start_offset_ts: {TopicPartition(topic='inflow-topic-022', partition=0): OffsetAndTimestamp(offset=0, timestamp=1778140800000)}
+[INFO] INFO: Get registry for inflow-topic-022
+[INFO] Using url https://fake-registry:8086/subjects/inflow-topic-022-value/versions/latest
+[INFO] Schema version found: 1
+[INFO] Schema id found: 42
+[INFO] INFO: Setting previous schema to latest only 1 version inflow-topic-022
+[INFO] schema version {'type': 'record', 'name': 'TradeMessage', 'namespace': 'com.test', 'fields': []}
+[INFO] --- Collection attempt 1 started at 2026-05-09 12:00:31 ---
+[INFO] Assigned partition 0
+[INFO] Reassigned partition 0 successfully
+[INFO] start_ts 1778140800000 1778104800.0
+[INFO] start_offset 0, start_ts 1778140800000
+[INFO] partition: 0
+[INFO] first message found for start 0: 2026-05-07-10.00.00
+[INFO] Last candidate message for stop point has offset 2
+[INFO] Seeking partition 0 to start_offset=0 (attempt 1)
+[INFO] Seek to offset 0 successful
+[INFO] Expected 3 messages in time window for partition 0
+[INFO] Current offset after seek: 0
+[INFO] Writing filtered messages to temp file: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[INFO] Schema_id changed to 42
+[INFO] Reached end offset for partition 0: offset=2
+[INFO] Partition 0 done: total_seen=3, filtered_written=3
+[INFO] Attempt 1 complete: total_messages_seen_in_window=3, messages_matching_all_filters=3
+[INFO] ======================================================================
+[INFO] COUNT VALIDATION REPORT
+[INFO]   Source of expected count : /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4Q00_2026-05-07_metadata.txt
+[INFO]   Expected count (metadata): 100
+[INFO]   Actual filtered count    : 3
+[INFO]   Absolute difference      : 97 (-97)
+[INFO]   Percentage difference    : 97.0000% lower than expected
+[INFO]   Tolerance                : ±10.0%
+[INFO]   Acceptable range         : [90, 110]
+[ERROR]   Result: OUTSIDE TOLERANCE — actual is 97.0000% lower than expected (tolerance ±10.0%). Actual 3 is outside acceptable range [90, 110].
+[INFO] ======================================================================
+[INFO] Temp file removed after failed attempt: /Users/karthikkommalapati/Desktop/dev/personal/ubs_projects/trigger_based_new/test_output_get_kafka/data/CPSB4QST_2026-05-07/CPSB4QST_2026-05-07.par.tmp
+[ERROR] Retry window of 0.0 hour(s) exhausted after 1 attempt(s). Count validation failed permanently.
+[ERROR] ======================================================================
+[ERROR] FAILURE ANALYSIS — FILTER / COUNT MISMATCH DETAIL
+[ERROR] Expected filter values (from metadata):
+[ERROR]   mandatorCode = "022"
+[ERROR]   businessDate = "2026-05-07"
+[ERROR]   reconciliationGroupId = "5001"
+[ERROR] Total messages seen in Kafka time window: 3
+[ERROR] Distinct filter-key combinations found  : 1
+[ERROR] Per-filter field analysis:
+[ERROR]   mandatorCode = "022" — MATCHED (value present in Kafka data)
+[ERROR]   businessDate = "2026-05-07" — MATCHED (value present in Kafka data)
+[ERROR]   reconciliationGroupId = "5001" — MATCHED (value present in Kafka data)
+[ERROR] Available combinations in Kafka data (last attempt):
+[ERROR]   mandatorCode="022", businessDate="2026-05-07", reconciliationGroupId="5001" — 3 message(s)
+[ERROR] ======================================================================
+[ERROR] Offsets have NOT been committed. Rerun this script to re-consume and re-validate messages.
+  [PASS]  exit code = 1 (count mismatch, retry exhausted)
+  [PASS]  .par file NOT written (correct)
+  [PASS]  temp file cleaned up after failure (correct)
+
+============================================================
+SUMMARY
+============================================================
+  [PASS]  happy_path
+  [PASS]  count_within_tolerance
+  [PASS]  no_filter_columns
+  [PASS]  metadata_missing
+  [PASS]  metadata_one_line
+  [PASS]  metadata_extra_row
+  [PASS]  metadata_count_not_int
+  [PASS]  filter_column_no_mapping
+  [PASS]  partial_filter_match
+  [PASS]  count_outside_tolerance
+============================================================
+ALL PASSED
+============================================================

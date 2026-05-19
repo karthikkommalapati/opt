@@ -1,0 +1,2 @@
+export_datetime|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-05-09T13:51:24|2026-05-07|022|CLIENT_STRUCTURES|CPSB4Q00|5001|3|3|3
