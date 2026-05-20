@@ -1,0 +1,75 @@
+Generate a draw.io XML flowchart for the 00_get_kafka.py script that I can import directly into draw.io (File → Import From → XML).
+
+  Use standard draw.io flowchart shapes:
+  - Rounded rectangle for process steps
+  - Diamond for decisions
+  - Oval/stadium for Start and Exit nodes
+  - Arrows with Yes/No labels on decision branches
+
+  Layout: top-to-bottom, single vertical spine with branches going left/right off decisions.
+
+  Colour coding:
+  - Start node: light grey
+  - Normal process steps: white with black border
+  - Decision diamonds: light yellow
+  - Acceptance steps (promote temp file → write log → commit offsets): light blue
+  - Exit success nodes: light green
+  - Exit failure nodes: light red/salmon
+
+  Node text — plain business language, no variable names or code, one line per node:
+
+  Nodes in order:
+  1. Start
+  2. Load configuration (broker, topic, filter columns, tolerance %, retry window)
+  3. Load metadata file from Status Messages output
+  4. [Decision] Metadata valid? (correct format, numeric expected count, all filter columns mapped)
+     → No → Log error → Exit: Failure (invalid metadata)
+     → Yes → continue
+  5. Connect to Kafka broker and compute time window
+  6. Begin collection attempt
+  7. Read all messages in time window from Kafka
+  8. Filter messages — keep only those matching mandator, business date and reconciliation group from metadata
+  9. Write matching messages to temporary output file
+  10. [Decision] Filtered count ≥ expected count?
+
+     YES branch:
+     11. Update stability streak (same count as previous attempt → streak +1, count changed → streak resets to 1)
+     12. [Decision] Stability streak ≥ required consecutive attempts?
+         → Yes:
+           13. Promote temp file to final output (.par)
+           14. Write validation log entry
+           15. Commit Kafka offsets
+           16. Exit: Success (stable count confirmed)
+         → No:
+           17. [Decision] Retry window exhausted?
+               → Yes:
+                 18. Promote temp file to final output (.par)
+                 19. Write validation log entry
+                 20. Commit Kafka offsets
+                 21. Exit: Success (accepted — stability unconfirmed, window expired)
+               → No:
+                 22. Delete temporary file
+                 23. Sleep (retry interval)
+                 → loop back to "Begin collection attempt"
+
+     NO branch (under expected):
+     24. Reset stability streak to zero
+     25. [Decision] Retry window exhausted?
+         → No:
+           26. Delete temporary file
+           27. Sleep (retry interval)
+           → loop back to "Begin collection attempt"
+         → Yes:
+           28. [Decision] Count ≥ lower tolerance floor (expected minus tolerance %)?
+               → Yes:
+                 29. Promote temp file to final output (.par)
+                 30. Write validation log entry (warning: below expected but within tolerance)
+                 31. Commit Kafka offsets
+                 32. Exit: Success with Warning (below expected, within tolerance)
+               → No:
+                 33. Delete temporary file
+                 34. Log failure analysis (which filter values were found vs expected)
+                 35. Exit: Failure (count below tolerance floor)
+
+  Make the loop-back arrows curve to the left of the main spine to avoid overlapping forward arrows.
+  Output only the raw draw.io XML — no explanation, no markdown fences.
