@@ -1,0 +1,25 @@
+{
+  "type": "record",
+  "name": "StatusMessage",
+  "namespace": "com.ubs.dsf",
+  "fields": [
+    {
+      "name": "status",
+      "type": {
+        "type": "record",
+        "name": "Status",
+        "namespace": "com.ubs.dsf",
+        "fields": [
+          {"name": "mandatorCode",              "type": "string"},
+          {"name": "businessDate",              "type": "string"},
+          {"name": "reconciliationGroupId",     "type": "int"},
+          {"name": "instanceIndex",             "type": "int"},
+          {"name": "totalInstances",            "type": "int"},
+          {"name": "numberOfMessagesPublished", "type": "long"}
+        ]
+      }
+    },
+    {"name": "producer",       "type": "string"},
+    {"name": "eventTimestamp", "type": "string"}
+  ]
+}

@@ -6,16 +6,16 @@ set -e
 CONTAINER_NAME="redpanda"
 TOPIC="inflow-topic"
 
+IMAGE="container-registry.ubs.net/base-images/redpanda:latest-23.2-alpine-20231028"
+
 echo ">>> Pulling Redpanda image..."
-podman pull docker.redpanda.com/redpandadata/redpanda:latest
+podman pull "$IMAGE"
 
 echo ">>> Starting Redpanda..."
 podman run -d \
   --name "$CONTAINER_NAME" \
-  -p 9092:9092 \
-  -p 8081:8081 \
-  -p 8082:8082 \
-  docker.redpanda.com/redpandadata/redpanda:latest \
+  --network=host \
+  "$IMAGE" \
   redpanda start \
     --overprovisioned \
     --smp 1 \
