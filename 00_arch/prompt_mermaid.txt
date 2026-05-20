@@ -1,0 +1,71 @@
+ Generate a Mermaid flowchart for the 00_get_kafka.py script that I can paste into draw.io's Mermaid editor (Extras → Edit Diagram → select
+  Mermaid).      
+
+  Use `flowchart TD` layout.
+
+  Rules:
+  - Plain business language for all node labels — no variable names, no code syntax
+  - One line per node label
+  - Use these Mermaid shape types:
+    - ([text]) for Start and Exit nodes
+    - [text] for process steps
+    - {text} for decisions
+  - Apply inline styles using classDef for colour coding:
+    - classDef start fill:#d0d0d0,stroke:#888
+    - classDef process fill:#ffffff,stroke:#333
+    - classDef decision fill:#fff9c4,stroke:#f0c040
+    - classDef accept fill:#cce5ff,stroke:#3399ff
+    - classDef success fill:#d4edda,stroke:#28a745,color:#155724
+    - classDef warning fill:#fff3cd,stroke:#ffc107,color:#856404
+    - classDef failure fill:#f8d7da,stroke:#dc3545,color:#721c24
+
+  Flow to generate:
+
+  START([Start]):::start
+  --> LOAD_CFG[Load configuration — broker, topic, filter columns, tolerance %, retry window] :::process
+  --> LOAD_META[Load metadata file from Status Messages output] :::process
+  --> META_VALID{Metadata valid?} :::decision
+
+  META_VALID -- No --> META_ERR[Log error] :::process --> EXIT_META([Exit — Failure: invalid metadata]) :::failure
+  META_VALID -- Yes --> CONNECT[Connect to Kafka and compute time window] :::process
+  --> ATTEMPT[Begin collection attempt] :::process
+  --> READ[Read all messages in time window from Kafka] :::process
+  --> FILTER[Filter — keep messages matching mandator, business date, reconciliation group from metadata] :::process
+  --> WRITE_TMP[Write matching messages to temporary output file] :::process
+  --> COUNT_CHECK{Filtered count ≥ expected count?} :::decision
+
+  COUNT_CHECK -- Yes --> STREAK[Update stability streak — same count: streak +1 — count changed: streak resets to 1] :::process
+  --> STREAK_MET{Stability streak ≥ required attempts?} :::decision
+
+  STREAK_MET -- Yes --> ACCEPT1[Promote temp file to final output] :::accept
+  --> LOG1[Write validation log entry] :::accept
+  --> COMMIT1[Commit Kafka offsets] :::accept
+  --> EXIT_OK([Exit — Success: stable count confirmed]) :::success
+
+  STREAK_MET -- No --> WIN_EXH1{Retry window exhausted?} :::decision
+  WIN_EXH1 -- Yes --> ACCEPT2[Promote temp file to final output] :::accept
+  --> LOG2[Write validation log entry] :::accept
+  --> COMMIT2[Commit Kafka offsets] :::accept
+  --> EXIT_UNSTABLE([Exit — Success: accepted, stability unconfirmed, window expired]) :::warning
+  WIN_EXH1 -- No --> DEL1[Delete temporary file] :::process
+  --> SLEEP1[Sleep — retry interval] :::process
+  --> ATTEMPT
+
+  COUNT_CHECK -- No --> RESET[Reset stability streak to zero] :::process
+  --> WIN_EXH2{Retry window exhausted?} :::decision
+  WIN_EXH2 -- No --> DEL2[Delete temporary file] :::process
+  --> SLEEP2[Sleep — retry interval] :::process
+  --> ATTEMPT
+  WIN_EXH2 -- Yes --> FLOOR_CHECK{Count ≥ lower tolerance floor?} :::decision
+  FLOOR_CHECK -- Yes --> ACCEPT3[Promote temp file to final output] :::accept
+  --> LOG3[Write validation log entry — warning: below expected but within tolerance] :::accept
+  --> COMMIT3[Commit Kafka offsets] :::accept
+  --> EXIT_WARN([Exit — Success with Warning: below expected, within tolerance]) :::warning
+  FLOOR_CHECK -- No --> DEL3[Delete temporary file] :::process
+  --> FAIL_LOG[Log failure analysis — filter values seen vs expected] :::process
+  --> EXIT_FAIL([Exit — Failure: count below tolerance floor]) :::failure
+
+  Output only the raw Mermaid code block — nothing else.
+
+  Paste this into Copilot, copy the Mermaid code it returns, then in draw.io: Extras → Edit Diagram → change dropdown to "Mermaid" and paste it
+  in.
