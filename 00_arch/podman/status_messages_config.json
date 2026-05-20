@@ -1,0 +1,57 @@
+{
+    "KAFKA_USER": {
+        "022": "local"
+    },
+    "STREAMING_KAFKA_BROKER": {
+        "022": "localhost:9092"
+    },
+    "STREAMING_KAFKA_INFLOW_TOPIC": {
+        "022": "inflow-topic"
+    },
+    "AVRO_SCHEMA_REGISTRY": "localhost:8081",
+    "AVRO_SHCEMA_FILE": "LATEST",
+    "AVRO_COLUMNS": "",
+    "INPUT_DATA": "AVRO",
+    "OUTPUT_DATA": "JSON",
+    "SEPERATOR": "|",
+    "DECIMAL_CONV": "2",
+    "DECIMAL_SCALE": "2",
+    "LOCATION_TIME_WINDOW": {
+        "022": {
+            "START_TS":       "23:59:00",
+            "START_DT_OFFSET": "0",
+            "STOP_TS":        "00:00:00",
+            "STOP_DT_OFFSET": "-1"
+        }
+    },
+    "LOCATION_TOLERANCE_PCT": {
+        "022": "10"
+    },
+    "ALLOW_NO_DATA": "YES",
+    "EXTEND_ON_ITERATE": "NO",
+    "COMMIT_CNT": "50",
+    "STREAMING_TIMESTAMP_KEY": "eventTimestamp",
+    "STREAMING_TIMESTAMP_FORMAT": "%Y-%m-%dT%H:%M:%S%z",
+    "STREAMING_MANDATORY_KEY": "",
+    "STREAMING_WAIT_UNTIL_DONE_HOURS": "1",
+    "STREAMING_IDLE_TIMEOUT_MINUTES": "1",
+    "STREAMING_PAGE_SIZE_LIMIT_BYTES": "8000",
+    "STREAMING_REPROCESS": "False",
+    "STREAMING_VERBOSE": "True",
+    "STREAMING_STORE_MIDLAYER": "False",
+    "VALIDATE_TOPIC_MANDATOR": "NO",
+    "WAIT_FOR_SUBMIT": "NO",
+    "STATUS_MESSAGES_FEED_NAME": "CPSB4Q00",
+    "METADATA_FILE_SUFFIX": "_metadata.txt",
+    "METADATA_FILTER_COLUMNS": ["mandatorCode", "businessDate", "reconciliationGroupId"],
+    "METADATA_FILTER_FIELD_MAP": {
+        "mandator": "mandatorCode",
+        "business_date": "businessDate",
+        "reconciliation_group_id": "reconciliationGroupId"
+    },
+    "METADATA_COUNT_FIELD": "total_messages_published",
+    "METADATA_COUNT_TOLERANCE_PCT": "10",
+    "MAX_LISTEN_DURATION_HOURS": "0.05",
+    "RETRY_WAIT_SECONDS": "5",
+    "STABLE_COUNT_REQUIRED_ATTEMPTS": "2"
+}
