@@ -1,0 +1,52 @@
+ Generate a Mermaid flowchart for the kafka_trigger_status_messages.py script that I can paste into draw.io via Arrange → Insert → Advanced →
+  Mermaid.
+
+  Use `flowchart TD` layout.
+
+  Rules:
+  - Plain business language for all node labels — no variable names, no code syntax
+  - One line per node label
+  - Use these Mermaid shape types:
+    - ([text]) for Start and Exit nodes
+    - [text] for process steps
+    - {text} for decisions
+  - Apply inline styles using classDef:
+    - classDef start fill:#d0d0d0,stroke:#888
+    - classDef process fill:#ffffff,stroke:#333
+    - classDef decision fill:#fff9c4,stroke:#f0c040
+    - classDef accept fill:#cce5ff,stroke:#3399ff
+    - classDef success fill:#d4edda,stroke:#28a745,color:#155724
+    - classDef failure fill:#f8d7da,stroke:#dc3545,color:#721c24
+
+  Flow to generate:
+
+  START([Start]):::start
+  --> LOAD_CFG[Load configuration — broker, topic, producer filter, separator, retry window]:::process
+  --> CONNECT[Connect to Kafka and compute time window]:::process
+  --> COLLECT[Collect pass — read all messages in time window from Kafka]:::process
+  --> FILTER[Keep only messages matching mandator, business date, and expected producer]:::process
+  --> GROUP[Group messages by reconciliation group ID and instance index]:::process
+  --> MAX_RUN[Identify the highest reconciliation group ID]:::process
+  --> VALIDATE{All expected instances present for highest group ID? No duplicates?}:::decision
+
+  VALIDATE -- Yes --> WRITE_META[Write metadata file — reconciliation group, total messages published, instance count]:::accept
+  --> WRITE_LOG_PRE[Append entry to validation history log]:::accept
+  --> WRITE_PASS[Write pass — write all messages for validated reconciliation group to output file]:::accept
+  --> FLUSH[Flush and sync output file to disk]:::accept
+  --> COMMIT[Commit Kafka offsets]:::accept
+  --> EXIT_OK([Exit — Success]):::success
+
+  VALIDATE -- No --> ALLOW{Partial or missing data allowed by config?}:::decision
+  ALLOW -- No --> EXIT_FAIL1([Exit — Failure: incomplete instances]):::failure
+
+  ALLOW -- Yes --> RETRY_CHECK{Retry window exhausted?}:::decision
+  RETRY_CHECK -- Yes --> EXIT_FAIL2([Exit — Failure: validation never passed within allowed window]):::failure
+  RETRY_CHECK -- No --> POLL[Poll Kafka for newly arrived messages]:::process
+  --> MERGE[Add new messages to collected set]:::process
+  --> REVALIDATE{All expected instances now present for highest group ID?}:::decision
+  REVALIDATE -- No --> SLEEP[Wait — retry interval]:::process --> RETRY_CHECK
+  REVALIDATE -- Yes --> WRITE_META
+
+  Output only the raw Mermaid code — nothing else.
+
+  Same steps as before: paste into Copilot, copy the Mermaid output, then in draw.io Arrange → Insert → Advanced → Mermaid.
