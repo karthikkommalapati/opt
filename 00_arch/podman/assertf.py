@@ -16,7 +16,7 @@ def assert_set(value):
 def assert_tuple(value):
     if not isinstance(value, tuple):
         raise TypeError(f"Expected tuple, got {type(value).__name__}")
-    return value
+    return tuple(value[:2])
 
 def assert_int(value):
     if not isinstance(value, int):

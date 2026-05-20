@@ -123,6 +123,48 @@ podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 
 ---
 
+## Fixing Duplicate Messages in Topic
+
+If the script reports `VALIDATION FAILED: Duplicate instanceIds found`, it usually means `produce_messages.py` was run more than once without clearing the topic first.
+
+**Verify duplicates (decodes Avro, counts per instanceIndex):**
+```bash
+python3 -c "
+import io, json, requests
+import fastavro
+from kafka import KafkaConsumer
+from collections import Counter
+
+schema = fastavro.parse_schema(json.loads(
+    requests.get('http://localhost:8081/subjects/inflow-topic-value/versions/latest').json()['schema']
+))
+consumer = KafkaConsumer('inflow-topic', bootstrap_servers='localhost:9092',
+    auto_offset_reset='earliest', consumer_timeout_ms=3000)
+counts = Counter(
+    fastavro.schemaless_reader(io.BytesIO(m.value[5:]), schema)['status']['instanceIndex']
+    for m in consumer
+)
+consumer.close()
+for idx, count in sorted(counts.items()):
+    flag = ' <-- DUPLICATE' if count > 1 else ''
+    print(f'  instanceIndex={idx}  count={count}{flag}')
+"
+```
+
+**Fix — wipe the topic and re-produce once:**
+```bash
+podman exec redpanda rpk topic delete inflow-topic
+podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
+python3 produce_messages.py
+```
+
+Then re-run the pipeline:
+```bash
+bash run_local.sh 2026-04-22
+```
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause |

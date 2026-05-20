@@ -34,7 +34,7 @@ export PC_LOD_PROC_PATH="$SCRIPT_DIR/output/data"
 export LOG_PROC_PATH="$SCRIPT_DIR/output/logs"
 
 # Framework-injected execution-control vars
-export FEED_NAME="CPSB4QST"
+export FEED_NAME="CPSB4Q00"
 export CFG_CTL="0"
 export KEEP_TGT="NO"
 
@@ -44,12 +44,12 @@ export AUDIT_ID="LOCAL_TEST_001"
 
 # ── rename local_config so the script finds it ───────────────────────────────
 # The script looks for: {CFG_PROC_PATH}/{DSF_MAIN_ID}_{FEED_NAME}_config.json
-#                     = $SCRIPT_DIR/1001_CPSB4QST_config.json
+#                     = $SCRIPT_DIR/1001_CPSB4Q00_config.json
 # We symlink local_config.json to that expected name (idempotent).
-EXPECTED_CONFIG="$SCRIPT_DIR/1001_CPSB4QST_config.json"
-if [ ! -e "$EXPECTED_CONFIG" ]; then
+EXPECTED_CONFIG="$SCRIPT_DIR/1001_CPSB4Q00_config.json"
+if [ ! -L "$EXPECTED_CONFIG" ] && [ ! -e "$EXPECTED_CONFIG" ]; then
   ln -s "$SCRIPT_DIR/status_messages_config.json" "$EXPECTED_CONFIG"
-  echo ">>> Symlinked status_messages_config.json → 1001_CPSB4QST_config.json"
+  echo ">>> Symlinked status_messages_config.json → 1001_CPSB4Q00_config.json"
 fi
 
 # ── run ──────────────────────────────────────────────────────────────────────
