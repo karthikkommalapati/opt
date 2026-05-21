@@ -41,19 +41,18 @@ podman exec "$CONTAINER_NAME" rpk topic delete "$BUSINESS_TOPIC" 2>/dev/null \
   || echo "    Topic not found — skipping."
 
 # ── delete Schema Registry subjects ──────────────────────────────────────────
+# Both deletes run unconditionally (|| true) so a subject stuck in soft-deleted
+# state from a previous run still gets permanently removed.
 echo ""
 echo ">>> Deleting Schema Registry subject: ${STATUS_TOPIC}-value"
-# soft-delete first, then permanent delete
-curl -sf -X DELETE "${REGISTRY_URL}/subjects/${STATUS_TOPIC}-value" > /dev/null 2>&1 \
-  && curl -sf -X DELETE "${REGISTRY_URL}/subjects/${STATUS_TOPIC}-value?permanent=true" > /dev/null 2>&1 \
-  && echo "    Deleted." \
-  || echo "    Subject not found — skipping."
+curl -sf -X DELETE "${REGISTRY_URL}/subjects/${STATUS_TOPIC}-value" > /dev/null 2>&1 || true
+curl -sf -X DELETE "${REGISTRY_URL}/subjects/${STATUS_TOPIC}-value?permanent=true" > /dev/null 2>&1 || true
+echo "    Done."
 
 echo ">>> Deleting Schema Registry subject: ${BUSINESS_TOPIC}-value"
-curl -sf -X DELETE "${REGISTRY_URL}/subjects/${BUSINESS_TOPIC}-value" > /dev/null 2>&1 \
-  && curl -sf -X DELETE "${REGISTRY_URL}/subjects/${BUSINESS_TOPIC}-value?permanent=true" > /dev/null 2>&1 \
-  && echo "    Deleted." \
-  || echo "    Subject not found — skipping."
+curl -sf -X DELETE "${REGISTRY_URL}/subjects/${BUSINESS_TOPIC}-value" > /dev/null 2>&1 || true
+curl -sf -X DELETE "${REGISTRY_URL}/subjects/${BUSINESS_TOPIC}-value?permanent=true" > /dev/null 2>&1 || true
+echo "    Done."
 
 # ── recreate empty topics ─────────────────────────────────────────────────────
 echo ""
