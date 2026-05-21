@@ -10,13 +10,23 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ASOF_DT="${1:-$(date +%Y-%m-%d)}"
 echo ">>> Running with ASOF_DT=$ASOF_DT"
 
+# ── mandator (optional second arg, default 022) ──────────────────────────────
+if [ -n "${2:-}" ]; then
+  DSF_MANDATOR="$2"
+  echo ">>> Using mandator: $DSF_MANDATOR"
+else
+  DSF_MANDATOR="022"
+  echo "WARNING: No mandator provided — falling back to default '022'."
+  echo "         To specify: bash run_local.sh <YYYY-MM-DD> <mandator>"
+fi
+
 # ── output directories ───────────────────────────────────────────────────────
 mkdir -p "$SCRIPT_DIR/output/logs"
 mkdir -p "$SCRIPT_DIR/output/data"
 
 # ── DSF framework variables ──────────────────────────────────────────────────
 export SDA="TEST"
-export DSF_MANDATOR="022"
+export DSF_MANDATOR
 export DSF_DOMAIN="T"
 export DSF_CHARMAP="UTF-8"
 export DSF_JAVA_TZ="UTC"

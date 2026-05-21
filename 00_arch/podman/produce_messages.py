@@ -1,14 +1,15 @@
 """
-Produces real Avro-encoded messages from input/status_messages_data.jsonl
-using the schema registered in the local Redpanda Schema Registry.
+Produces real Avro-encoded messages from a JSONL file into the local Redpanda topic.
 
 Encodes each record in Confluent wire format: 0x00 + 4-byte schema_id + avro payload.
 The Kafka message timestamp is taken from the record's eventTimestamp field so that
 the script's time-window filter sees the correct timestamp.
 
 Usage:
-    python produce_messages.py
+    python produce_messages.py                           # uses input/status_messages_data.jsonl
+    python produce_messages.py --file input/part2.jsonl  # use a specific file (e.g. late messages)
 """
+import argparse
 import io
 import json
 import struct
@@ -22,9 +23,13 @@ from kafka import KafkaProducer
 BROKER        = "localhost:9092"
 REGISTRY_URL  = "http://localhost:8081"
 TOPIC         = "inflow-topic"          # must match local_config.json
-DATA_FILE     = "input/status_messages_data.jsonl"
 TIMESTAMP_KEY = "eventTimestamp"        # field used by the script for time filtering
 TIMESTAMP_FMT = "%Y-%m-%dT%H:%M:%S%z"
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--file", "-f", default="input/status_messages_data.jsonl",
+                    help="JSONL file to produce (default: input/status_messages_data.jsonl)")
+DATA_FILE = parser.parse_args().file
 
 
 def fetch_schema_from_registry(topic):
