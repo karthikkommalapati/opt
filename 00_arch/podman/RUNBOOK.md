@@ -81,6 +81,66 @@ podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 
 ---
 
+## Schema Registry
+
+The schema registry and Kafka topics are **completely independent**. Deleting a topic removes its messages — the registered schema stays untouched. You almost never need to touch the schema registry unless the schema itself changes.
+
+### When you DO need to re-register the schema
+
+| Situation | Action needed |
+|---|---|
+| First-time setup | Register once with `register_schema.py` |
+| Wipe and re-produce topic | Nothing — schema stays in registry |
+| DevPod reconnect (container restarted) | Nothing — schema stays in registry |
+| `bash stop_kafka.sh` then `bash start_kafka.sh` | Re-register — registry is wiped when container is destroyed |
+| Schema file changed (`input/status_messages_schema.json`) | Delete old subject, re-register |
+| Schema version mismatch error from script | Delete old subject, re-register |
+
+### View registered schemas
+
+```bash
+# list all registered subjects
+curl http://localhost:8081/subjects
+
+# view the current schema for a subject
+curl http://localhost:8081/subjects/inflow-topic-value/versions/latest | python3 -m json.tool
+curl http://localhost:8081/subjects/business-topic-value/versions/latest | python3 -m json.tool
+```
+
+### Delete a schema subject (before re-registering)
+
+Only do this when you have changed the schema file and need to register the new version.
+
+```bash
+# delete status messages schema
+curl -X DELETE http://localhost:8081/subjects/inflow-topic-value
+
+# delete business data schema (get_kafka)
+curl -X DELETE http://localhost:8081/subjects/business-topic-value
+```
+
+Then re-register:
+
+```bash
+# re-register status messages schema
+python3 register_schema.py
+
+# re-register business data schema
+python3 register_get_kafka_schema.py
+```
+
+### What happens when the container is destroyed
+
+`bash stop_kafka.sh` stops and removes the Redpanda container. When you run `bash start_kafka.sh` again, the registry starts empty — all schemas are gone. You must re-register both schemas before producing:
+
+```bash
+bash start_kafka.sh
+python3 register_schema.py           # status messages schema
+python3 register_get_kafka_schema.py # business data schema
+```
+
+---
+
 ## Re-run without restarting broker
 
 If Redpanda is already running, skip steps 1–2 and repeat from step 3:
