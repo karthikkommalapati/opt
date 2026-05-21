@@ -804,7 +804,7 @@ try:
         auto_offset_reset = 'latest'
         ,bootstrap_servers=KAFKA_BROKER
         ,security_protocol="PLAINTEXT"
-        client_id=APP_ID
+        ,client_id=APP_ID
         ,group_id=APP_ID
         ,enable_auto_commit=False
         ,fetch_max_wait_ms=2000

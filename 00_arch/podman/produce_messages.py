@@ -33,14 +33,17 @@ DATA_FILE = parser.parse_args().file
 
 
 def fetch_schema_from_registry(topic):
-    """Fetch schema and ID from the local registry (registered by register_schema.py)."""
+    """Fetch schema and ID from the local registry (registered by register_schema.py).
+    Returns (schema_id, raw_schema_dict, parsed_schema).
+    raw_schema_dict is used for find_timestamp_paths; parsed_schema for encoding.
+    """
     subject = f"{topic}-value"
     resp = requests.get(f"{REGISTRY_URL}/subjects/{subject}/versions/latest")
     resp.raise_for_status()
     data = resp.json()
-    schema_id = data["id"]
-    schema    = json.loads(data["schema"])
-    return schema_id, fastavro.parse_schema(schema)
+    schema_id  = data["id"]
+    raw_schema = json.loads(data["schema"])
+    return schema_id, raw_schema, fastavro.parse_schema(raw_schema)
 
 
 def parse_timestamp(record):
@@ -74,8 +77,16 @@ def find_timestamp_paths(schema, path=()):
     return results
 
 
+def parse_ts_string(ts_str):
+    """Parse a timestamp string, handling both T and space separators."""
+    return datetime.fromisoformat(ts_str.replace(" ", "T", 1))
+
+
 def prepare_record(record, timestamp_paths):
-    """Convert string timestamp fields → int (micros or millis since epoch) per schema logical type."""
+    """Convert string timestamp fields → int (micros or millis since epoch).
+    Handles "YYYY-MM-DDTHH:MM:SS..." and "YYYY-MM-DD HH:MM:SS..." formats.
+    Already-integer values and None are left unchanged.
+    """
     record = dict(record)
     for path, unit in timestamp_paths:
         obj = record
@@ -90,9 +101,14 @@ def prepare_record(record, timestamp_paths):
         leaf = path[-1]
         val = obj.get(leaf)
         if isinstance(val, str):
-            dt = datetime.fromisoformat(val)
-            factor = 1_000_000 if unit == "timestamp-micros" else 1_000
-            obj[leaf] = int(dt.timestamp() * factor)
+            try:
+                dt = parse_ts_string(val)
+                factor = 1_000_000 if unit == "timestamp-micros" else 1_000
+                obj[leaf] = int(dt.timestamp() * factor)
+            except ValueError as e:
+                print(f"WARNING: cannot convert timestamp field '{leaf}' value '{val}': {e}",
+                      file=sys.stderr)
+        # int → already correct; None → nullable null; both fine as-is
     return record
 
 
@@ -124,8 +140,8 @@ if not records:
 print(f"Data file:    {DATA_FILE}  ({len(records)} records)")
 
 # ── fetch schema ──────────────────────────────────────────────────────────────
-schema_id, parsed_schema = fetch_schema_from_registry(TOPIC)
-timestamp_paths = find_timestamp_paths(parsed_schema)
+schema_id, raw_schema, parsed_schema = fetch_schema_from_registry(TOPIC)
+timestamp_paths = find_timestamp_paths(raw_schema)  # raw dict — not the fastavro-parsed object
 print(f"Schema ID:    {schema_id}")
 print(f"Topic:        {TOPIC}")
 print()

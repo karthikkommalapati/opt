@@ -32,31 +32,50 @@ DATA_FILE = parser.parse_args().file
 
 
 def fetch_schema_from_registry(topic):
+    """Returns (schema_id, raw_schema_dict, parsed_schema).
+    raw_schema_dict is used for find_timestamp_paths — the fastavro parsed schema
+    has a different internal structure that can cause timestamp fields to be missed.
+    parsed_schema is used for encoding only.
+    """
     subject = f"{topic}-value"
     resp = requests.get(f"{REGISTRY_URL}/subjects/{subject}/versions/latest")
     resp.raise_for_status()
     data = resp.json()
-    return data["id"], fastavro.parse_schema(json.loads(data["schema"]))
+    schema_id  = data["id"]
+    raw_schema = json.loads(data["schema"])
+    parsed     = fastavro.parse_schema(raw_schema)
+    return schema_id, raw_schema, parsed
+
+
+def parse_ts_string(ts_str):
+    """Parse a timestamp string to a datetime, handling both T and space separators."""
+    # "2026-04-22 03:44:33.949595+00:00" → normalise to ISO format with T
+    return datetime.fromisoformat(ts_str.replace(" ", "T", 1))
 
 
 def parse_timestamp_ms(record):
+    """Extract Kafka message timestamp (ms) from the record's timestamp key field."""
     ts_str = record.get(TIMESTAMP_KEY)
     if not ts_str:
         return int(datetime.now(timezone.utc).timestamp() * 1000)
     try:
-        dt = datetime.fromisoformat(ts_str)
-        return int(dt.timestamp() * 1000)
-    except ValueError:
+        return int(parse_ts_string(str(ts_str)) .timestamp() * 1000)
+    except (ValueError, AttributeError):
         return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
 def find_timestamp_paths(schema, path=()):
+    """Walk the raw JSON schema dict recursively and return (path_tuple, unit) for every
+    timestamp-micros / timestamp-millis field at any nesting depth.
+    Must be called on the raw schema dict, not the fastavro-parsed object.
+    """
     results = []
     if not isinstance(schema, dict) or schema.get("type") != "record":
         return results
     for field in schema.get("fields", []):
         fname = field["name"]
         ftype = field["type"]
+        # unwrap union ["null", <type>] or [<type>, "null"]
         if isinstance(ftype, list):
             ftype = next((t for t in ftype if t != "null"), ftype[0])
         if isinstance(ftype, dict):
@@ -69,6 +88,12 @@ def find_timestamp_paths(schema, path=()):
 
 
 def prepare_record(record, timestamp_paths):
+    """Convert every timestamp string field → int (micros or millis since epoch).
+    Handles:
+      - "YYYY-MM-DDTHH:MM:SS.ffffff+00:00"  (T separator)
+      - "YYYY-MM-DD HH:MM:SS.ffffff+00:00"   (space separator)
+    Already-integer values and None (nullable) are left unchanged.
+    """
     record = dict(record)
     for path, unit in timestamp_paths:
         obj = record
@@ -79,11 +104,16 @@ def prepare_record(record, timestamp_paths):
         if obj is None:
             continue
         leaf = path[-1]
-        val = obj.get(leaf)
+        val  = obj.get(leaf)
         if isinstance(val, str):
-            dt = datetime.fromisoformat(val)
-            factor = 1_000_000 if unit == "timestamp-micros" else 1_000
-            obj[leaf] = int(dt.timestamp() * factor)
+            try:
+                dt = parse_ts_string(val)
+                factor = 1_000_000 if unit == "timestamp-micros" else 1_000
+                obj[leaf] = int(dt.timestamp() * factor)
+            except ValueError as e:
+                print(f"WARNING: cannot convert timestamp field '{leaf}' value '{val}': {e}",
+                      file=sys.stderr)
+        # int → already correct; None → nullable null; both fine as-is
     return record
 
 
@@ -112,8 +142,8 @@ if not records:
 
 print(f"Data file:    {DATA_FILE}  ({len(records)} records)")
 
-schema_id, parsed_schema = fetch_schema_from_registry(TOPIC)
-timestamp_paths = find_timestamp_paths(parsed_schema)
+schema_id, raw_schema, parsed_schema = fetch_schema_from_registry(TOPIC)
+timestamp_paths = find_timestamp_paths(raw_schema)  # raw dict — not the fastavro-parsed object
 print(f"Schema ID:    {schema_id}")
 print(f"Topic:        {TOPIC}")
 print()
