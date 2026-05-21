@@ -48,10 +48,46 @@ output/data/    ← processed data files
 
 ---
 
-## Teardown
+## Inspecting the Kafka Topic
+
+All commands use `rpk` via `podman exec` — no extra tools needed.
+
+**How many messages are in the topic:**
+```bash
+podman exec redpanda rpk topic describe inflow-topic -p
+```
+Look at the `HIGH-WATERMARK` column — that's the total message count per partition.
+
+**Read the last 10 messages:**
+```bash
+podman exec redpanda rpk topic consume inflow-topic --num 10
+```
+
+**Read ALL messages from the beginning:**
+```bash
+podman exec redpanda rpk topic consume inflow-topic --offset start
+```
+
+**List all topics:**
+```bash
+podman exec redpanda rpk topic list
+```
+
+**Wipe the topic and start fresh (before re-producing):**
+```bash
+podman exec redpanda rpk topic delete inflow-topic
+podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
+```
+
+---
+
+## Re-run without restarting broker
+
+If Redpanda is already running, skip steps 1–2 and repeat from step 3:
 
 ```bash
-bash stop_kafka.sh
+python3 produce_messages.py
+bash run_local.sh 2026-05-20
 ```
 
 ---
@@ -94,6 +130,16 @@ bash run_local.sh 2026-04-22 023
 ---
 
 ## Testing real scenarios
+
+Before running any scenario, always check the time window for your chosen `ASOF_DT` and mandator:
+
+```bash
+python3 show_window.py 2026-04-22 022
+```
+
+This prints the exact START and END timestamps the script will use. All `eventTimestamp` values in your JSONL data must fall inside this range unless the scenario specifically tests outside-window behaviour (Scenario F).
+
+---
 
 ### Scenario A — Late publication (messages arrive after script starts)
 
@@ -237,55 +283,16 @@ python3 produce_messages.py --file input/scenario_c.jsonl
 
 ---
 
-## Re-run without restarting broker
-
-If Redpanda is already running, skip steps 1–2 and repeat from step 3:
-
-```bash
-python3 produce_messages.py
-bash run_local.sh 2026-05-20
-```
-
----
-
-## Inspecting the Kafka Topic
-
-All commands use `rpk` via `podman exec` — no extra tools needed.
-
-**How many messages are in the topic:**
-```bash
-podman exec redpanda rpk topic describe inflow-topic -p
-```
-Look at the `HIGH-WATERMARK` column — that's the total message count per partition.
-
-**Read the last 10 messages:**
-```bash
-podman exec redpanda rpk topic consume inflow-topic --num 10
-```
-
-**Read ALL messages from the beginning:**
-```bash
-podman exec redpanda rpk topic consume inflow-topic --offset start
-```
-
-**List all topics:**
-```bash
-podman exec redpanda rpk topic list
-```
-
-**Wipe the topic and start fresh (before re-producing):**
-```bash
-podman exec redpanda rpk topic delete inflow-topic
-podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
-```
-
----
-
 ### Scenario D — Multiple runIds (max runId selection test)
 
 **What it tests**: Topic has messages from two different `reconciliationGroupId` values. Script must select max runId only — core business logic.
 
-**Data to prepare** — `input/scenario_d.jsonl`: two complete sets, same mandator/date, different runIds:
+**Step 1 — Find your window**:
+```bash
+python3 show_window.py 2026-04-22 022
+```
+
+**Step 2 — Create `input/scenario_d.jsonl`**: two complete sets, same mandator/date, different runIds:
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 2, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:05+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 2, "numberOfMessagesPublished": 200}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
@@ -293,9 +300,15 @@ podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 2, "instanceIndex": 1, "totalInstances": 2, "numberOfMessagesPublished": 250}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:20+00:00"}
 ```
 
-**Run**:
+**Step 3 — Wipe topic and produce**:
 ```bash
+podman exec redpanda rpk topic delete inflow-topic
+podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 python3 produce_messages.py --file input/scenario_d.jsonl
+```
+
+**Step 4 — Run**:
+```bash
 bash run_local.sh 2026-04-22 022
 ```
 
@@ -307,21 +320,32 @@ bash run_local.sh 2026-04-22 022
 
 **What it tests**: Script enters retry loop, `MAX_LISTEN_DURATION_HOURS` expires before missing instances arrive. Script must exit cleanly.
 
-**Data to prepare** — `input/scenario_e.jsonl`: only instances 0 and 1 of a 3-instance set (instance 2 never arrives):
+**Step 1 — Find your window**:
+```bash
+python3 show_window.py 2026-04-22 022
+```
+
+**Step 2 — Create `input/scenario_e.jsonl`**: only instances 0 and 1 of a 3-instance set (instance 2 never arrives):
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 3, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:05+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 3, "numberOfMessagesPublished": 200}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
 ```
 
-**Config to set** in `status_messages_config.json` before running (restore after):
+**Step 3 — Set a short timeout** in `status_messages_config.json` before running (restore after):
 ```json
 "MAX_LISTEN_DURATION_HOURS": "0.02",
 "RETRY_WAIT_SECONDS": "5"
 ```
 
-**Run**:
+**Step 4 — Wipe topic and produce**:
 ```bash
+podman exec redpanda rpk topic delete inflow-topic
+podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 python3 produce_messages.py --file input/scenario_e.jsonl
+```
+
+**Step 5 — Run**:
+```bash
 bash run_local.sh 2026-04-22 022
 ```
 
@@ -405,51 +429,99 @@ Both messages are in the topic but only the `23:59` one appears in output.
 
 ---
 
-### Scenario G — Re-run idempotency (EXTEND_ON_ITERATE)
+### Scenario G — Re-run behaviour and USR_VAL=1 backup mechanism
 
-**What it tests**: Running the script twice for the same `ASOF_DT` does not double-process messages. On the second run, committed offsets are already past the window — the script should find nothing and exit cleanly.
+**What it tests**: what the script does when run twice for the same `ASOF_DT`, and how the `{SDA}_USR_VAL=1` production re-run mode backs up the previous output.
 
-**Step 1 — Find your window**:
-```bash
-python3 show_window.py 2026-04-22 022
-```
+---
 
-**Step 2 — Create `input/scenario_g.jsonl`** — complete set, all instances present:
+**Re-running always re-exports the same data** (verified in script)
+
+Running the script twice for the same date re-reads and re-exports the same messages. This happens regardless of USR_VAL:
+
+- **USR_VAL=0** (local simulation default): collect pass sees committed offsets past the window end and skips the partition. But `ALLOW_NO_DATA=YES` then fires the retry loop, which seeks directly back to `start_offset` with no committed offset check — reads the same messages again and writes output.
+- **USR_VAL=1** (production re-run): script always seeks to `start_offset`, ignores committed offsets entirely. Old output file is renamed to `.1` before writing.
+
+The committed offset in the collect pass is useful for **mid-run crash recovery** — if the script crashes after partially committing, the next run resumes from the committed position instead of re-reading from the start of the window. It does not prevent a full re-run.
+
+---
+
+**Part 1 — Default re-run (USR_VAL=0, ALLOW_NO_DATA=YES)**
+
+**Data** — create `input/scenario_g.jsonl`:
+
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 3, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 3, "numberOfMessagesPublished": 200}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:20+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 2, "totalInstances": 3, "numberOfMessagesPublished": 150}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:30+00:00"}
 ```
 
-**Step 3 — Wipe topic and produce once**:
+**Steps**:
+
 ```bash
 podman exec redpanda rpk topic delete inflow-topic
 podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 python3 produce_messages.py --file input/scenario_g.jsonl
+bash run_local.sh 2026-04-22 022    # first run
+ls -l output/data/                  # note file timestamp and size
+bash run_local.sh 2026-04-22 022    # second run — NO topic wipe
+ls -l output/data/                  # file is rewritten with same content
 ```
 
-**Step 4 — First run** — should succeed and write output:
+**Expected log sequence on second run**:
+
+```
+Consumer mode: TIME_WINDOW — seeking from time window start offset (SDA_USR_DEF_VAl != 1)
+last committed offset: 2
+No valid uncommitted data on the kafka topic for partition ... between 0 and 2
+Total messages collected from all partitions: 0
+ALLOW_NO_DATA is set to YES, will enter wait-and-listen mode
+=== Retry mode: collecting messages for validation ====
+seek to start offset: 0
+Retry mode: validation passed
+writing validated data to output/data/CPSB4Q00_2026-04-22.par
+Exiting (code 0): data successfully consumed and written to output/data/CPSB4Q00_2026-04-22.par
+```
+
+**Expected output/data/ after second run**:
+
+```
+output/data/CPSB4Q00_2026-04-22.par    ← rewritten with same 3 rows
+```
+
+---
+
+**Part 2 — Production re-run mode (USR_VAL=1) — output backup**
+
+When the framework schedules a deliberate re-run it sets `USR_VAL=1`. The script renames the existing output file to `.1` before writing — this is the backup mechanism.
+
+To simulate locally, temporarily change `TEST_USR_VAL="0"` to `TEST_USR_VAL="1"` in `run_local.sh`, then run:
+
 ```bash
-bash run_local.sh 2026-04-22 022
+bash run_local.sh 2026-04-22 022    # first run — writes CPSB4Q00_2026-04-22.par
+bash run_local.sh 2026-04-22 022    # second run with USR_VAL=1
+ls -l output/data/
 ```
 
-Check output was written:
-```bash
-ls output/data/
+**Expected log sequence on second run**:
+
+```
+Consumer mode: CONSUMED_COMMITTED — seeking from last committed offset (SDA_USR_DEF_VAl=1)
+First run for this date detected, data in output/data/CPSB4Q00_2026-04-22.par.1
+Seeked to offset 0 for partition 0
+Validation passed; Writing data for, max run id is 1
+writing validated data to output/data/CPSB4Q00_2026-04-22.par
+Exiting (code 0): data successfully consumed and written to output/data/CPSB4Q00_2026-04-22.par
 ```
 
-**Step 5 — Second run** — same command, same date:
-```bash
-bash run_local.sh 2026-04-22 022
+**Expected output/data/ after second run**:
+
+```
+output/data/CPSB4Q00_2026-04-22.par      ← fresh file — same 3 rows re-exported
+output/data/CPSB4Q00_2026-04-22.par.1    ← backup of the first run output
 ```
 
-**Expected on second run**:
-- Script starts from committed offsets (already past the window)
-- Finds 0 new messages
-- Exits cleanly — does NOT rewrite the output file
-- Logs show `no new messages` or similar — no validation, no output written
-
-**What to verify**: check `output/data/` — file timestamp should NOT change after the second run.
+Restore `TEST_USR_VAL="0"` in `run_local.sh` after testing.
 
 ---
 
@@ -510,6 +582,14 @@ python3 produce_messages.py
 Then re-run the pipeline:
 ```bash
 bash run_local.sh 2026-04-22
+```
+
+---
+
+## Teardown
+
+```bash
+bash stop_kafka.sh
 ```
 
 ---
