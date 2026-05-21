@@ -716,6 +716,7 @@ bash stop_kafka.sh
 | Script exits with no data | Check `ASOF_DT` matches the `businessDate` in your JSONL records |
 | `register_get_kafka_schema.py` fails — file not found | Put schema in `input/business_data_schema.json` |
 | `00_get_kafka.py` exits with no data | Check `ASOF_DT` matches `tradeDate` in JSONL and `std_enqueueTime` is inside the 16:00–16:00 window |
+| `Topic validation failed — does not contain mandator 022` | Config not loaded — symlink `1001_CPSB4QST_config.json` is missing. Run `ln -s get_kafka_config.json 1001_CPSB4QST_config.json` then use `bash run_get_kafka_local.sh` |
 | `No module named 'dsf_logging'` | Copy `dsf_logging.py` stub from UBS environment |
 | `No module named 'assertf'` | `assertf.py` stub is already in this folder — make sure Python path includes it |
 
@@ -772,6 +773,26 @@ python3 produce_get_kafka_messages.py
 # Step 3 — Run the consumer
 bash run_get_kafka_local.sh 2026-04-22
 ```
+
+> **Always run via `bash run_get_kafka_local.sh`** — never run `python3 00_get_kafka.py` directly.
+> The runner creates the symlink `1001_CPSB4QST_config.json → get_kafka_config.json` that the script
+> needs to load its config. Without it the script falls back to built-in defaults, which enables
+> `VALIDATE_TOPIC_MANDATOR=YES`. That check requires the Kafka topic name to end with the mandator
+> code (e.g. `business-topic-022`) — a production naming convention that the local topic
+> `business-topic` does not follow, causing an immediate `Topic validation failed` error even though
+> your data contains the correct `mandatorCode`.
+>
+> **If you see `Topic validation failed` for mandator `022`**: the config was not loaded. Fix:
+> ```bash
+> # Verify the symlink exists
+> ls -la 1001_CPSB4QST_config.json
+>
+> # If missing, create it manually
+> ln -s get_kafka_config.json 1001_CPSB4QST_config.json
+>
+> # Then re-run via the runner
+> bash run_get_kafka_local.sh 2026-04-22
+> ```
 
 ## Check output
 
