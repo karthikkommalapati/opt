@@ -141,6 +141,58 @@ python3 register_get_kafka_schema.py # business data schema
 
 ---
 
+## Resetting to a Clean Slate
+
+Use `reset_kafka.sh` when you want to start completely fresh — wipe all topic messages and schema registry subjects — without stopping or restarting the Redpanda container. The broker stays running throughout.
+
+### When to use it
+
+| Situation | Use `reset_kafka.sh` |
+|---|---|
+| Schema file changed and you need to re-register | Yes — deletes old subjects so re-registration is clean |
+| Topic has leftover/duplicate messages from a previous test | Yes — wipes all messages from both topics |
+| Starting a new test scenario from scratch | Yes — fastest way to get a clean slate |
+| Just want to wipe messages but keep schemas | Use topic delete/create commands directly (see Inspecting the Kafka Topic) |
+| Full teardown (stop broker too) | Use `bash stop_kafka.sh` instead |
+
+### Usage
+
+```bash
+# Reset topics + schema registry only (keeps output/ files)
+bash reset_kafka.sh
+
+# Reset topics + schema registry + delete all output/ files
+bash reset_kafka.sh --output
+```
+
+### What it does
+
+1. Deletes `inflow-topic` and `business-topic` (all messages gone)
+2. Permanently deletes both Schema Registry subjects (`inflow-topic-value`, `business-topic-value`)
+3. Recreates both topics empty and ready for use
+
+### What to do after running reset_kafka.sh
+
+Schemas are gone — you must re-register both before producing data:
+
+```bash
+# Step 1 — re-register both schemas
+python3 register_schema.py             # status messages schema
+python3 register_get_kafka_schema.py   # business data schema
+
+# Step 2 — produce fresh test data
+python3 produce_messages.py            # status messages
+python3 produce_get_kafka_messages.py  # business data
+
+# Step 3 — run the pipelines
+bash run_local.sh 2026-04-22
+bash run_get_kafka_local.sh 2026-04-22
+```
+
+If you only reset one pipeline (e.g. you only care about get_kafka), you can skip the schema registration and produce steps for the other pipeline — but note both topics are always wiped together.
+
+---
+
 ## Re-run without restarting broker
 
 If Redpanda is already running, skip steps 1–2 and repeat from step 3:
