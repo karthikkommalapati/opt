@@ -64,64 +64,60 @@ def parse_timestamp_ms(record):
         return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
-def _logical_type(ftype, field):
-    """Extract logicalType from wherever it may appear in an Avro field definition.
+def _unwrap_union(ftype):
+    """From a union list, return the first timestamp type if present, else first non-null type."""
+    if not isinstance(ftype, list):
+        return ftype
+    for t in ftype:
+        if isinstance(t, dict) and t.get("logicalType", "") in ("timestamp-micros", "timestamp-millis"):
+            return t
+    return next((t for t in ftype if t != "null"), ftype[0])
 
-    Three valid locations:
-      1. Inside the type dict:  {"type": "long", "logicalType": "timestamp-micros"}
-      2. At the field level:    {"name": "ts", "type": "long", "logicalType": "timestamp-micros"}
-      3. Inside a union list:   ["null", {"type": "long", "logicalType": "timestamp-micros"}]
-         (handled by the caller unwrapping the list first)
-    """
+
+def _get_logical_type(ftype, field):
+    """logicalType can live inside the type dict OR at the field level."""
     if isinstance(ftype, dict):
         return ftype.get("logicalType", "")
-    # ftype is a plain string like "long" — logicalType may be at field level
     return field.get("logicalType", "")
 
 
 def find_timestamp_paths(schema, path=()):
-    """Walk the raw JSON schema dict recursively and return (path_tuple, unit) for every
-    timestamp-micros / timestamp-millis field at any nesting depth.
-    Must be called on the raw schema dict, not the fastavro-parsed object.
+    """Recursively find all timestamp-micros/millis fields at any depth.
+    Traverses records, arrays, and maps.
+    Must be called on the raw JSON schema dict, not the fastavro-parsed object.
     """
     results = []
-    if not isinstance(schema, dict) or schema.get("type") != "record":
+    if not isinstance(schema, dict):
         return results
-    for field in schema.get("fields", []):
-        fname = field["name"]
-        ftype = field["type"]
-        # unwrap union: ["null", <type>] or [<type>, "null"] or multi-type union
-        if isinstance(ftype, list):
-            ftype = next(
-                (t for t in ftype if isinstance(t, dict) and t.get("logicalType", "")
-                 in ("timestamp-micros", "timestamp-millis")),
-                next((t for t in ftype if t != "null"), ftype[0])
-            )
-        lt = _logical_type(ftype, field)
-        if lt in ("timestamp-micros", "timestamp-millis"):
-            results.append((path + (fname,), lt))
-        elif isinstance(ftype, dict) and ftype.get("type") == "record":
-            results.extend(find_timestamp_paths(ftype, path + (fname,)))
+    t = schema.get("type")
+    if t == "record":
+        for field in schema.get("fields", []):
+            fname = field["name"]
+            ftype = _unwrap_union(field["type"])
+            lt    = _get_logical_type(ftype, field)
+            if lt in ("timestamp-micros", "timestamp-millis"):
+                results.append((path + (fname,), lt))
+            elif isinstance(ftype, dict):
+                results.extend(find_timestamp_paths(ftype, path + (fname,)))
+    elif t == "array":
+        results.extend(find_timestamp_paths(schema.get("items", {}), path))
+    elif t == "map":
+        results.extend(find_timestamp_paths(schema.get("values", {}), path))
     return results
 
 
-def prepare_record(record, timestamp_paths):
-    """Convert every timestamp string field → int (micros or millis since epoch).
-    Handles:
-      - "YYYY-MM-DDTHH:MM:SS.ffffff+00:00"  (T separator)
-      - "YYYY-MM-DD HH:MM:SS.ffffff+00:00"   (space separator)
-    Already-integer values and None (nullable) are left unchanged.
+def _convert_ts(obj, path, unit):
+    """Recursively navigate obj by path, converting string timestamps to int.
+    Handles dicts and lists (arrays of records) at any level of the path.
     """
-    record = dict(record)
-    for path, unit in timestamp_paths:
-        obj = record
-        for key in path[:-1]:
-            obj = obj.get(key) if isinstance(obj, dict) else None
-            if obj is None:
-                break
-        if obj is None:
-            continue
-        leaf = path[-1]
+    if isinstance(obj, list):
+        for item in obj:
+            _convert_ts(item, path, unit)
+        return
+    if not isinstance(obj, dict):
+        return
+    if len(path) == 1:
+        leaf = path[0]
         val  = obj.get(leaf)
         if isinstance(val, str):
             try:
@@ -129,9 +125,21 @@ def prepare_record(record, timestamp_paths):
                 factor = 1_000_000 if unit == "timestamp-micros" else 1_000
                 obj[leaf] = int(dt.timestamp() * factor)
             except ValueError as e:
-                print(f"WARNING: cannot convert timestamp field '{leaf}' value '{val}': {e}",
-                      file=sys.stderr)
-        # int → already correct; None → nullable null; both fine as-is
+                print(f"WARNING: cannot convert '{leaf}' value '{val}': {e}", file=sys.stderr)
+    else:
+        child = obj.get(path[0])
+        if child is not None:
+            _convert_ts(child, path[1:], unit)
+
+
+def prepare_record(record, timestamp_paths):
+    """Convert every timestamp string field → int (micros or millis since epoch).
+    Handles T and space separators, nested records, and arrays of records.
+    Already-integer values and None are left unchanged.
+    """
+    record = dict(record)
+    for path, unit in timestamp_paths:
+        _convert_ts(record, path, unit)
     return record
 
 
