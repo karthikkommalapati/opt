@@ -64,6 +64,21 @@ def parse_timestamp_ms(record):
         return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
+def _logical_type(ftype, field):
+    """Extract logicalType from wherever it may appear in an Avro field definition.
+
+    Three valid locations:
+      1. Inside the type dict:  {"type": "long", "logicalType": "timestamp-micros"}
+      2. At the field level:    {"name": "ts", "type": "long", "logicalType": "timestamp-micros"}
+      3. Inside a union list:   ["null", {"type": "long", "logicalType": "timestamp-micros"}]
+         (handled by the caller unwrapping the list first)
+    """
+    if isinstance(ftype, dict):
+        return ftype.get("logicalType", "")
+    # ftype is a plain string like "long" — logicalType may be at field level
+    return field.get("logicalType", "")
+
+
 def find_timestamp_paths(schema, path=()):
     """Walk the raw JSON schema dict recursively and return (path_tuple, unit) for every
     timestamp-micros / timestamp-millis field at any nesting depth.
@@ -75,15 +90,18 @@ def find_timestamp_paths(schema, path=()):
     for field in schema.get("fields", []):
         fname = field["name"]
         ftype = field["type"]
-        # unwrap union ["null", <type>] or [<type>, "null"]
+        # unwrap union: ["null", <type>] or [<type>, "null"] or multi-type union
         if isinstance(ftype, list):
-            ftype = next((t for t in ftype if t != "null"), ftype[0])
-        if isinstance(ftype, dict):
-            lt = ftype.get("logicalType", "")
-            if lt in ("timestamp-micros", "timestamp-millis"):
-                results.append((path + (fname,), lt))
-            elif ftype.get("type") == "record":
-                results.extend(find_timestamp_paths(ftype, path + (fname,)))
+            ftype = next(
+                (t for t in ftype if isinstance(t, dict) and t.get("logicalType", "")
+                 in ("timestamp-micros", "timestamp-millis")),
+                next((t for t in ftype if t != "null"), ftype[0])
+            )
+        lt = _logical_type(ftype, field)
+        if lt in ("timestamp-micros", "timestamp-millis"):
+            results.append((path + (fname,), lt))
+        elif isinstance(ftype, dict) and ftype.get("type") == "record":
+            results.extend(find_timestamp_paths(ftype, path + (fname,)))
     return results
 
 
@@ -146,6 +164,7 @@ schema_id, raw_schema, parsed_schema = fetch_schema_from_registry(TOPIC)
 timestamp_paths = find_timestamp_paths(raw_schema)  # raw dict — not the fastavro-parsed object
 print(f"Schema ID:    {schema_id}")
 print(f"Topic:        {TOPIC}")
+print(f"Timestamp fields detected: {[(('.'.join(p)), u) for p, u in timestamp_paths] or 'NONE — check schema logicalType declarations'}")
 print()
 
 producer = KafkaProducer(bootstrap_servers=BROKER, security_protocol="PLAINTEXT")
