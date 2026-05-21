@@ -602,3 +602,164 @@ bash stop_kafka.sh
 | Port mapping warnings | Expected — `--network=host` mode ignores `-p` flags; ports bind directly |
 | `register_schema.py` fails — file not found | Put schema in `input/status_messages_schema.json` |
 | Script exits with no data | Check `ASOF_DT` matches the `businessDate` in your JSONL records |
+| `register_get_kafka_schema.py` fails — file not found | Put schema in `input/business_data_schema.json` |
+| `00_get_kafka.py` exits with no data | Check `ASOF_DT` matches `tradeDate` in JSONL and `std_enqueueTime` is inside the 16:00–16:00 window |
+| `No module named 'dsf_logging'` | Copy `dsf_logging.py` stub from UBS environment |
+| `No module named 'assertf'` | `assertf.py` stub is already in this folder — make sure Python path includes it |
+
+---
+
+# 00_get_kafka.py Simulation
+
+`00_get_kafka.py` consumes business data records from `business-topic` and writes them to a `.par` output file. It is separate from the status messages pipeline — both use the same Redpanda broker but different topics.
+
+## Files added for this simulation
+
+| File | Purpose |
+|---|---|
+| `00_get_kafka.py` | Copied from `trigger_based_new/`, SSL removed |
+| `get_kafka_config.json` | Local sim config — points to `localhost:9092` and `business-topic` |
+| `run_get_kafka_local.sh` | Runner script — sets all required env vars |
+| `register_get_kafka_schema.py` | Registers business data schema with local registry |
+| `produce_get_kafka_messages.py` | Produces Avro business records into `business-topic` |
+| `input/business_data_schema.json` | Sample Avro schema with `std_enqueueTime` timestamp field |
+| `input/business_data.jsonl` | Sample business records for testing |
+
+## Time window for business data
+
+The business data window is `START_TS=16:00:00, START_DT_OFFSET=0, STOP_TS=16:00:00, STOP_DT_OFFSET=-1`.
+
+For `ASOF_DT=2026-04-22` this means:
+
+```
+Window START : 2026-04-22T16:00:00  (same day, 16:00)
+Window END   : 2026-04-23T16:00:00  (next day, 16:00)  ← STOP_DT_OFFSET=-1 means day+1
+```
+
+That is a full 24-hour window. All `std_enqueueTime` values in your JSONL must fall between `2026-04-22T16:00:00+00:00` and `2026-04-23T16:00:00+00:00`.
+
+Use `show_window.py` to verify:
+
+```bash
+python3 show_window.py 2026-04-22 022
+```
+
+Note: `show_window.py` reads from `status_messages_config.json` (status messages window). The business data window is in `get_kafka_config.json` under `LOCATION_TIME_WINDOW`. Verify manually using the formula above if the windows differ.
+
+## Run sequence (each test session)
+
+Broker must already be running from `bash start_kafka.sh`. Then:
+
+```bash
+# Step 1 — Register business data schema
+python3 register_get_kafka_schema.py
+
+# Step 2 — Produce test business records
+python3 produce_get_kafka_messages.py
+
+# Step 3 — Run the consumer
+bash run_get_kafka_local.sh 2026-04-22
+```
+
+## Check output
+
+```
+output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par    ← business records (JSON lines)
+output/logs/                                           ← log file
+```
+
+## Inspect the business topic
+
+```bash
+# How many messages are in the topic
+podman exec redpanda rpk topic describe business-topic -p
+
+# Read all messages (raw bytes — not human-readable because Avro-encoded)
+podman exec redpanda rpk topic consume business-topic --offset start --num 5
+
+# Wipe and re-produce
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py
+```
+
+## What WAIT_FOR_SUBMIT does
+
+In production `WAIT_FOR_SUBMIT=YES` means `00_get_kafka.py` waits for the status messages metadata file (written by `kafka_trigger_status_messages.py`) before consuming. This tells it how many records to expect and validates the count.
+
+In the local simulation `get_kafka_config.json` sets `WAIT_FOR_SUBMIT=NO` so the two scripts run independently. To test the full integrated flow (status messages → metadata → get_kafka validation), run:
+
+```bash
+# Terminal 1 — run status messages first
+bash run_local.sh 2026-04-22 022
+
+# Then run get_kafka once metadata file exists
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+The metadata file is written to `output/data/` by the status messages script and read from `output/get_kafka/` by get_kafka. Adjust `PC_LOD_PROC_PATH` in `run_get_kafka_local.sh` if you want both scripts to share the same output directory.
+
+## SSL changes applied to 00_get_kafka.py
+
+The same 3 changes as `kafka_trigger_status_messages.py` — verified at these lines:
+
+| Change | Line | Before | After |
+|---|---|---|---|
+| Schema registry session | 106 | `session.verify = ca_file` + `session.cert = ...` | `session.verify = False` |
+| Schema registry URL | 112 | `https://` | `http://` |
+| KafkaConsumer | 806 | `security_protocol="SSL"` + 4 ssl_ lines | `security_protocol="PLAINTEXT"` |
+
+## Test scenarios for get_kafka
+
+The same scenario principles apply as for status messages — the key difference is the topic (`business-topic`), the timestamp field (`std_enqueueTime`), and the 24-hour window.
+
+### Scenario — Normal run (all records in window)
+
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected**:
+
+```
+output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par  ← 5 JSON lines (one per record)
+```
+
+Log will show:
+
+```
+INFLOW_TOPIC: business-topic
+DT_UTC_START: 2026-04-22 16:00:00
+DT_UTC_END:   2026-04-23 16:00:00
+Exiting (code 0): data successfully consumed and written to ...CPSB4QST.par
+```
+
+### Scenario — Records outside time window
+
+Create `input/business_outside_window.jsonl` using `std_enqueueTime` before `2026-04-22T16:00:00`:
+
+```json
+{"std_enqueueTime": "2026-04-22T10:00:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-999", "productType": "EQUITY", "quantity": 100.0, "currency": "USD", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+```
+
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py --file input/business_outside_window.jsonl
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected**: script finds 0 records in the 16:00–16:00 window, enters retry loop, exits after `MAX_LISTEN_DURATION_HOURS` with `ALLOW_NO_DATA` result. No output file written.
+
+### Scenario — Empty topic
+
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected**: script finds 0 records, retries every `RETRY_WAIT_SECONDS=5`, exits cleanly after timeout.

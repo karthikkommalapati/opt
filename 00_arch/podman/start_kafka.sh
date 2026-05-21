@@ -4,7 +4,8 @@
 set -e
 
 CONTAINER_NAME="redpanda"
-TOPIC="inflow-topic"
+STATUS_TOPIC="inflow-topic"
+BUSINESS_TOPIC="business-topic"
 
 IMAGE="container-registry.ubs.net/base-images/redpanda:latest-23.2-alpine-20231028"
 
@@ -37,8 +38,13 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-echo ">>> Creating topic: $TOPIC"
-podman exec "$CONTAINER_NAME" rpk topic create "$TOPIC" \
+echo ">>> Creating topic: $STATUS_TOPIC"
+podman exec "$CONTAINER_NAME" rpk topic create "$STATUS_TOPIC" \
+  --partitions 1 \
+  --replicas 1
+
+echo ">>> Creating topic: $BUSINESS_TOPIC"
+podman exec "$CONTAINER_NAME" rpk topic create "$BUSINESS_TOPIC" \
   --partitions 1 \
   --replicas 1
 
@@ -47,8 +53,15 @@ echo "=== Redpanda is up ==="
 echo "  Kafka:           localhost:9092"
 echo "  Schema Registry: http://localhost:8081"
 echo "  Admin API:       http://localhost:8082"
+echo "  Topics:          $STATUS_TOPIC  (status messages)"
+echo "                   $BUSINESS_TOPIC  (business data)"
 echo ""
-echo "Next steps:"
-echo "  python register_schema.py"
-echo "  python produce_messages.py"
-echo "  bash run_local.sh"
+echo "Next steps (status messages):"
+echo "  python3 register_schema.py"
+echo "  python3 produce_messages.py"
+echo "  bash run_local.sh <YYYY-MM-DD>"
+echo ""
+echo "Next steps (get_kafka):"
+echo "  python3 register_get_kafka_schema.py"
+echo "  python3 produce_get_kafka_messages.py"
+echo "  bash run_get_kafka_local.sh <YYYY-MM-DD>"

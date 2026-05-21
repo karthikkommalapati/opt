@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "BusinessRecord",
+  "namespace": "com.ubs.dsf",
+  "fields": [
+    {"name": "std_enqueueTime",   "type": {"type": "long", "logicalType": "timestamp-micros"}},
+    {"name": "std_legalEntity",   "type": "string"},
+    {"name": "accountId",         "type": "string"},
+    {"name": "productType",       "type": "string"},
+    {"name": "quantity",          "type": "double"},
+    {"name": "currency",          "type": "string"},
+    {"name": "tradeDate",         "type": "string"},
+    {"name": "settlementDate",    "type": "string"},
+    {"name": "mandatorCode",      "type": "string"}
+  ]
+}
