@@ -1,13 +1,13 @@
 
 
-verbose=1
+verbose=0
 
 import os
 
 import dsf_logging
 
 logging_level = 20
-verbose_log=True
+verbose_log=False
 SDA, FEED_NAME = os.environ["SDA"].upper(), "CPSB4QST"
 ASOF_DT, PARENT_PID, AUDIT_ID = os.environ[f"{SDA}_ASOF_DT"], os.environ["PARENT_PID"], os.environ["AUDIT_ID"]
 get_kafka_log_path = os.environ["LOG_PROC_PATH"]
@@ -421,8 +421,10 @@ def write_get_kafka_validation_log(
     actual_count: int,
     tolerance_pct: float,
     separator: str = "|",
+    status: str = "SUCCESS",
+    failure_reason: str = "",
 ) -> None:
-    """Append one row to the get_kafka success validation log."""
+    """Append one row to the get_kafka validation log (success or failure)."""
     low = expected_count - expected_count * tolerance_pct / 100.0
     fields = {
         "export_datetime":          datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
@@ -436,6 +438,8 @@ def write_get_kafka_validation_log(
         "tolerance_pct":            str(tolerance_pct),
         "tolerance_lower":          str(int(low)),
         "tolerance_upper":          "unlimited",
+        "status":                   status,
+        "failure_reason":           failure_reason,
     }
     header_row = separator.join(fields.keys())
     data_row   = separator.join(fields.values())
@@ -1308,6 +1312,7 @@ try:
                 tolerance_pct=METADATA_COUNT_TOLERANCE_PCT,
                 separator=SEPERATOR,
             )
+            dsf_logger.log_msg(f"Output data file       : {DATA_FILE}", level=20)
             dsf_logger.log_msg(
                 f"Committing offsets for {len(last_offsets)} partition(s) "
                 f"after successful .par write.",
@@ -1438,6 +1443,13 @@ try:
                         "Rerun this script to re-consume and re-validate messages.",
                         level=40
                     )
+                    write_get_kafka_validation_log(
+                        GET_KAFKA_VALIDATION_LOG, username, ASOF_DT, DSF_MANDATOR, FEED_NAME,
+                        str(filter_values.get("reconciliationGroupId", "")),
+                        EXPECTED_COUNT, filtered_count, METADATA_COUNT_TOLERANCE_PCT,
+                        SEPERATOR, "FAILED",
+                        f"COUNT_BELOW_TOLERANCE: expected={EXPECTED_COUNT} actual={filtered_count} tolerance_lower={int(low)}",
+                    )
                     os._exit(1)
 
             else:
@@ -1477,6 +1489,12 @@ except Exception as _loop_err:
 # if DATA_CONSUME is set we know we have consumed at least one message
 if(DATA_CONSUME != "Yes" and ALLOW_NO_DATA == "No"):
     dsf_logger.log_msg(f"No data consumed from any partition!!!", level=40)
+    write_get_kafka_validation_log(
+        GET_KAFKA_VALIDATION_LOG, username, ASOF_DT, DSF_MANDATOR, FEED_NAME,
+        str(filter_values.get("reconciliationGroupId", "")),
+        EXPECTED_COUNT, 0, METADATA_COUNT_TOLERANCE_PCT,
+        SEPERATOR, "FAILED", "NO_DATA_CONSUMED",
+    )
     os._exit(1)
 
 # redundant for clarity
@@ -1500,4 +1518,5 @@ if(restart == "YES"):
         os._exit(9)
 
 
+dsf_logger.log_msg(f"Exiting (code 0): data successfully consumed and written to {DATA_FILE}", level=20)
 os._exit(0)
