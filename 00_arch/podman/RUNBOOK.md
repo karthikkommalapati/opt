@@ -1,316 +1,613 @@
 # Local Simulation Runbook
 
-## Prerequisites (one-time setup)
+This guide covers everything needed to set up and run the local Kafka simulation environment — from first-time setup through daily use, scenario testing, and diagnosis. Follow sections 3 → 9 to get up and running from scratch.
 
-### 1. Redpanda image
-Already pulled from internal registry:
+---
+
+## Table of Contents
+
+1. [What's in This Directory](#1-whats-in-this-directory)
+2. [How the Two Pipelines Work](#2-how-the-two-pipelines-work)
+3. [One-Time Setup](#3-one-time-setup)
+4. [Starting the Environment (Fresh Start)](#4-starting-the-environment-fresh-start)
+5. [After Pod Restart](#5-after-pod-restart)
+6. [Checking the Environment](#6-checking-the-environment)
+7. [Registering Schemas](#7-registering-schemas)
+8. [Publishing Messages](#8-publishing-messages)
+9. [Running the Pipelines](#9-running-the-pipelines)
+10. [Reset and Cleanup](#10-reset-and-cleanup)
+11. [Scenarios — Status Messages Pipeline](#11-scenarios--status-messages-pipeline)
+12. [Scenarios — Business Data Pipeline](#12-scenarios--business-data-pipeline)
+13. [Command Index](#13-command-index)
+14. [Troubleshooting](#14-troubleshooting)
+
+---
+
+## 1. What's in This Directory
+
+| File | Purpose |
+|---|---|
+| `start_kafka.sh` | Start Redpanda container, create both topics |
+| `stop_kafka.sh` | Stop and remove the Redpanda container |
+| `reset_kafka.sh` | Wipe topics + schemas without stopping the broker |
+| `run_local.sh` | Run the status messages pipeline (`kafka_trigger_status_messages.py`) |
+| `run_get_kafka_local.sh` | Run the business data pipeline (`00_get_kafka.py`) |
+| `kafka_trigger_status_messages.py` | Status messages consumer — reads `inflow-topic`, validates instance completeness, writes output |
+| `00_get_kafka.py` | Business data consumer — reads `business-topic`, validates count, writes output |
+| `register_schema.py` | Register status messages Avro schema with local Schema Registry |
+| `register_get_kafka_schema.py` | Register business data Avro schema with local Schema Registry |
+| `produce_messages.py` | Produce status messages into `inflow-topic` from a JSONL file |
+| `produce_get_kafka_messages.py` | Produce business records into `business-topic` from a JSONL file |
+| `show_window.py` | Print the exact time window the script will use for a given date + mandator |
+| `status_messages_config.json` | Config for the status messages pipeline |
+| `get_kafka_config.json` | Config for the business data pipeline |
+| `assertf.py` | Stub for the UBS assertion framework (used by both scripts) |
+| `CHANGES.md` | SSL removal changes applied to both scripts for local use |
+| `input/status_messages_schema.json` | Avro schema for status messages |
+| `input/status_messages_data.jsonl` | Sample status message records |
+| `input/business_data_schema.json` | Avro schema for business data records |
+| `input/business_data.jsonl` | Sample business data records |
+
+---
+
+## 2. How the Two Pipelines Work
+
+One Redpanda broker (a Kafka-compatible message broker) runs in a container and serves both pipelines. Each pipeline has its own topic and its own schema.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Redpanda container  (localhost:9092 Kafka / :8081 Schema Registry)  │
+│                                                         │
+│   inflow-topic           business-topic                 │
+│   (status messages)      (business records)             │
+└───────────┬──────────────────────┬──────────────────────┘
+            │                      │
+   produce_messages.py    produce_get_kafka_messages.py
+            │                      │
+   kafka_trigger_         00_get_kafka.py
+   status_messages.py
+   → output/data/         → output/get_kafka/
+```
+
+**Status messages pipeline** (`inflow-topic`):
+- Messages describe how many records a downstream producer has published for a given business date
+- Script validates that ALL expected instances (0 to N-1) have arrived for the maximum `reconciliationGroupId`
+- Only when all instances are present does it write the output and commit offsets
+
+**Business data pipeline** (`business-topic`):
+- Messages contain actual business records (trades, positions, etc.)
+- Script validates the count against an expected number from a metadata file
+- Uses a time window (`std_enqueueTime`) to filter which records to consume
+
+Both pipelines are independent — they use the same broker but different topics. They can be run in sequence or independently.
+
+---
+
+## 3. One-Time Setup
+
+### 3.1 Pull the Redpanda image
+
+This only needs to be done once per machine/DevPod.
+
 ```bash
 podman pull container-registry.ubs.net/base-images/redpanda:latest-23.2-alpine-20231028
 ```
 
-### 2. Input files — place in `input/`
+> If `podman pull` fails with an EOF error, confirm you are using the full internal registry URL above — not Docker Hub.
+
+### 3.2 Prepare input files
+
+Two sets of input files are needed — one per pipeline. Place them in the `input/` directory.
+
+**Status messages pipeline:**
+
 | File | What to put here |
 |---|---|
-| `input/status_messages_schema.json` | Your Avro schema (raw schema or full Confluent API response — both handled) |
-| `input/status_messages_data.jsonl` | Your test messages — one JSON record per line |
+| `input/status_messages_schema.json` | Avro schema for the `inflow-topic` messages |
+| `input/status_messages_data.jsonl` | Test messages — one JSON record per line |
 
-See `input/README.md` for file format details.
+**Business data pipeline:**
 
-### 3. Main scripts
-Copy from `trigger_based_new/` and apply SSL-removal changes per `CHANGES.md`:
-- `kafka_trigger_status_messages.py`
-- `00_get_kafka.py`
+| File | What to put here |
+|---|---|
+| `input/business_data_schema.json` | Avro schema for the `business-topic` messages |
+| `input/business_data.jsonl` | Test business records — one JSON record per line |
+
+Sample files are already present in `input/` — use them as-is for initial testing.
+
+### 3.3 Verify Python dependencies
+
+Both scripts require `kafka-python`, `fastavro`, `pandas`, `requests`, and `pytz`. Confirm they are installed:
+
+```bash
+python3 -c "import kafka, fastavro, pandas, requests, pytz; print('OK')"
+```
 
 ---
 
-## Run Sequence (each test session)
+## 4. Starting the Environment (Fresh Start)
+
+Use this section when starting for the first time, or after running `bash stop_kafka.sh` (which destroys the container).
+
+### Step 1 — Start the broker
 
 ```bash
-# Step 1 — Start broker (Redpanda + Schema Registry + topic creation)
 bash start_kafka.sh
-
-# Step 2 — Register your Avro schema with the local registry
-python3 register_schema.py
-
-# Step 3 — Produce test messages from your JSONL file into the topic
-python3 produce_messages.py
-
-# Step 4 — Run the pipeline (replace date with businessDate from your JSONL data)
-bash run_local.sh 2026-05-20
 ```
 
-## Check output
+This starts the Redpanda container and creates both topics (`inflow-topic` and `business-topic`) with 1 partition each.
 
+### Step 2 — Verify the broker is ready
+
+```bash
+podman exec redpanda rpk cluster info
 ```
-output/logs/    ← log files
-output/data/    ← processed data files
+
+Expected output includes a broker ID and node address. If this fails, the container is not ready yet — wait a few seconds and try again.
+
+### Step 3 — Register schemas
+
+Both schemas must be registered before producing any messages. Schema registration is lost when the container is destroyed — you must redo this step after every `bash stop_kafka.sh` / `bash start_kafka.sh` cycle.
+
+```bash
+python3 register_schema.py           # status messages schema → inflow-topic-value
+python3 register_get_kafka_schema.py # business data schema   → business-topic-value
+```
+
+Expected output: `Schema registered successfully. ID: <number>` for each.
+
+### Step 4 — Verify schemas are registered
+
+```bash
+curl http://localhost:8081/subjects
+```
+
+Expected: `["business-topic-value","inflow-topic-value"]`
+
+### Step 5 — Produce test messages
+
+```bash
+python3 produce_messages.py            # status messages → inflow-topic
+python3 produce_get_kafka_messages.py  # business data   → business-topic
+```
+
+### Step 6 — Run the pipelines
+
+Replace `2026-04-22` with the `businessDate` / `tradeDate` that appears in your JSONL data.
+
+```bash
+bash run_local.sh 2026-04-22 022          # status messages pipeline
+bash run_get_kafka_local.sh 2026-04-22 022 # business data pipeline
+```
+
+Check output:
+```
+output/data/          ← status messages output
+output/get_kafka/     ← business data output
+output/logs/          ← log files for both
 ```
 
 ---
 
-## Inspecting the Kafka Topic
+## 5. After Pod Restart
 
-All commands use `rpk` via `podman exec` — no extra tools needed.
+When a DevPod disconnects or the machine restarts, the Redpanda container **stops but is not destroyed**. The container, its topics, and its schemas are preserved. Do NOT run `start_kafka.sh` again — it will fail because a container named `redpanda` already exists.
 
-**How many messages are in the topic:**
+### Step 1 — Check the container state
+
 ```bash
-podman exec redpanda rpk topic describe inflow-topic -p
-```
-Look at the `HIGH-WATERMARK` column — that's the total message count per partition.
-
-**Read the last 10 messages:**
-```bash
-podman exec redpanda rpk topic consume inflow-topic --num 10
+podman ps -a | grep redpanda
 ```
 
-**Read ALL messages from the beginning:**
+You will see one of:
+- `Up X minutes` — container is already running, go to Step 3
+- `Exited` — container is stopped, continue to Step 2
+- _(no output)_ — container is gone, run `bash start_kafka.sh` from scratch (see Section 4)
+
+### Step 2 — Restart the stopped container
+
 ```bash
-podman exec redpanda rpk topic consume inflow-topic --offset start
+podman start redpanda
 ```
 
-**List all topics:**
+This is fast — no image pull, no topic creation. Topics and their messages are preserved.
+
+### Step 3 — Verify the broker is ready
+
+```bash
+podman exec redpanda rpk cluster info
+```
+
+If this succeeds, the broker is ready.
+
+### Step 4 — Check schema state
+
+Schemas survive a container stop/start. Verify they are still registered:
+
+```bash
+curl http://localhost:8081/subjects
+```
+
+If both subjects appear (`inflow-topic-value`, `business-topic-value`), you are ready to produce and run immediately.
+
+If subjects are missing (empty response `[]`), re-register:
+
+```bash
+python3 register_schema.py
+python3 register_get_kafka_schema.py
+```
+
+### Step 5 — Continue from where you left off
+
+Topics and their messages are still intact. You can run the pipelines directly:
+
+```bash
+bash run_local.sh 2026-04-22 022
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+Or reproduce messages first if you want fresh data (see Section 8).
+
+---
+
+## 6. Checking the Environment
+
+Use these checks at any time to understand the current state.
+
+### Is the container running?
+
+```bash
+podman ps -a | grep redpanda
+```
+
+Look for `Up` (running) or `Exited` (stopped).
+
+### Is the broker healthy?
+
+```bash
+podman exec redpanda rpk cluster info
+```
+
+Success = broker is ready. Failure = container is stopped or starting up.
+
+### Are both topics present?
+
 ```bash
 podman exec redpanda rpk topic list
 ```
 
-**Wipe the topic and start fresh (before re-producing):**
+Expected: `inflow-topic` and `business-topic` both listed.
+
+### How many messages are in each topic?
+
 ```bash
-podman exec redpanda rpk topic delete inflow-topic
-podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
+podman exec redpanda rpk topic describe inflow-topic  -p
+podman exec redpanda rpk topic describe business-topic -p
 ```
+
+Look at the `HIGH-WATERMARK` column — that is the total message count per partition.
+
+### Are schemas registered?
+
+```bash
+curl http://localhost:8081/subjects
+```
+
+Expected: `["business-topic-value","inflow-topic-value"]`
 
 ---
 
-## Schema Registry
+## 7. Registering Schemas
 
-The schema registry and Kafka topics are **completely independent**. Deleting a topic removes its messages — the registered schema stays untouched. You almost never need to touch the schema registry unless the schema itself changes.
+### When you need to register (and when you don't)
 
-### When you DO need to re-register the schema
-
-| Situation | Action needed |
+| Situation | Action |
 |---|---|
-| First-time setup | Register once with `register_schema.py` |
-| Wipe and re-produce topic | Nothing — schema stays in registry |
-| DevPod reconnect (container restarted) | Nothing — schema stays in registry |
-| `bash stop_kafka.sh` then `bash start_kafka.sh` | Re-register — registry is wiped when container is destroyed |
-| Schema file changed (`input/status_messages_schema.json`) | Delete old subject, re-register |
+| First-time setup | Register both — see Section 4 |
+| Container stopped then restarted (`podman start redpanda`) | Nothing — schemas survive |
+| Container destroyed and recreated (`stop_kafka.sh` → `start_kafka.sh`) | Re-register both |
+| `bash reset_kafka.sh` run | Re-register both — reset deletes schemas |
+| Topic wiped (delete + create) without reset | Nothing — schema is independent of topic |
+| Schema file changed | Delete old subject, re-register |
 | Schema version mismatch error from script | Delete old subject, re-register |
 
-### View registered schemas
+### 7.1 Register status messages schema
 
 ```bash
-# list all registered subjects
-curl http://localhost:8081/subjects
-
-# view the current schema for a subject
-curl http://localhost:8081/subjects/inflow-topic-value/versions/latest | python3 -m json.tool
-curl http://localhost:8081/subjects/business-topic-value/versions/latest | python3 -m json.tool
-```
-
-### Delete a schema subject (before re-registering)
-
-Only do this when you have changed the schema file and need to register the new version.
-
-```bash
-# delete status messages schema
-curl -X DELETE http://localhost:8081/subjects/inflow-topic-value
-
-# delete business data schema (get_kafka)
-curl -X DELETE http://localhost:8081/subjects/business-topic-value
-```
-
-Then re-register:
-
-```bash
-# re-register status messages schema
 python3 register_schema.py
+```
 
-# re-register business data schema
+Reads from `input/status_messages_schema.json`. Registers as subject `inflow-topic-value`.
+
+### 7.2 Register business data schema
+
+```bash
 python3 register_get_kafka_schema.py
 ```
 
-### What happens when the container is destroyed
+Reads from `input/business_data_schema.json`. Registers as subject `business-topic-value`.
 
-`bash stop_kafka.sh` stops and removes the Redpanda container. When you run `bash start_kafka.sh` again, the registry starts empty — all schemas are gone. You must re-register both schemas before producing:
+### 7.3 Delete and re-register a schema
+
+Only needed when the schema file has changed or you are getting schema mismatch errors.
 
 ```bash
-bash start_kafka.sh
-python3 register_schema.py           # status messages schema
-python3 register_get_kafka_schema.py # business data schema
+# Delete the old subject
+curl -X DELETE http://localhost:8081/subjects/inflow-topic-value   # status messages
+curl -X DELETE http://localhost:8081/subjects/business-topic-value # business data
+
+# Re-register
+python3 register_schema.py
+python3 register_get_kafka_schema.py
+```
+
+### 7.4 View a registered schema
+
+```bash
+curl http://localhost:8081/subjects/inflow-topic-value/versions/latest  | python3 -m json.tool
+curl http://localhost:8081/subjects/business-topic-value/versions/latest | python3 -m json.tool
 ```
 
 ---
 
-## Resetting to a Clean Slate
+## 8. Publishing Messages
 
-Use `reset_kafka.sh` when you want to start completely fresh — wipe all topic messages and schema registry subjects — without stopping or restarting the Redpanda container. The broker stays running throughout.
+Schemas must be registered before producing (see Section 7). Producing into an already-populated topic ADDS messages — it does not replace them. Wipe the topic first if you want a clean set (see Section 10.1).
 
-### When to use it
-
-| Situation | Use `reset_kafka.sh` |
-|---|---|
-| Schema file changed and you need to re-register | Yes — deletes old subjects so re-registration is clean |
-| Topic has leftover/duplicate messages from a previous test | Yes — wipes all messages from both topics |
-| Starting a new test scenario from scratch | Yes — fastest way to get a clean slate |
-| Just want to wipe messages but keep schemas | Use topic delete/create commands directly (see Inspecting the Kafka Topic) |
-| Full teardown (stop broker too) | Use `bash stop_kafka.sh` instead |
-
-### Usage
+### 8.1 Status messages (inflow-topic)
 
 ```bash
-# Reset topics + schema registry only (keeps output/ files)
-bash reset_kafka.sh
+# Default input file (input/status_messages_data.jsonl)
+python3 produce_messages.py
 
-# Reset topics + schema registry + delete all output/ files
-bash reset_kafka.sh --output
+# Custom file
+python3 produce_messages.py --file input/my_data.jsonl
 ```
 
-### What it does
+**Message format** — each line in the JSONL must be:
 
-1. Deletes `inflow-topic` and `business-topic` (all messages gone)
-2. Permanently deletes both Schema Registry subjects (`inflow-topic-value`, `business-topic-value`)
-3. Recreates both topics empty and ready for use
+```json
+{"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 3, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
+```
 
-### What to do after running reset_kafka.sh
+Key fields:
+- `mandatorCode` — must match `DSF_MANDATOR` you run with (e.g. `022`)
+- `businessDate` — must match `ASOF_DT` you pass to `run_local.sh`
+- `reconciliationGroupId` — the run ID; script picks the highest value
+- `instanceIndex` / `totalInstances` — 0-based; all indices 0 to N-1 must be present
+- `eventTimestamp` — **must fall inside the time window** (check with `show_window.py`)
 
-Schemas are gone — you must re-register both before producing data:
+Check the time window before writing JSONL data:
+```bash
+python3 show_window.py 2026-04-22 022
+```
+
+Verify messages landed in the topic:
+```bash
+podman exec redpanda rpk topic describe inflow-topic -p
+```
+
+`HIGH-WATERMARK` must equal the number of messages you produced.
+
+### 8.2 Business data (business-topic)
 
 ```bash
-# Step 1 — re-register both schemas
-python3 register_schema.py             # status messages schema
-python3 register_get_kafka_schema.py   # business data schema
+# Default input file (input/business_data.jsonl)
+python3 produce_get_kafka_messages.py
 
-# Step 2 — produce fresh test data
-python3 produce_messages.py            # status messages
-python3 produce_get_kafka_messages.py  # business data
+# Custom file
+python3 produce_get_kafka_messages.py --file input/my_records.jsonl
+```
 
-# Step 3 — run the pipelines
-bash run_local.sh 2026-04-22
+**Message format** — each line:
+
+```json
+{"std_enqueueTime": "2026-04-22T17:00:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-001", "productType": "EQUITY", "quantity": 500.0, "currency": "CHF", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+```
+
+Key fields:
+- `std_enqueueTime` — timestamp used for Kafka offset filtering; must be between `2026-04-22T16:00:00+00:00` and `2026-04-23T16:00:00+00:00` for `ASOF_DT=2026-04-22`
+- `tradeDate` — must match `ASOF_DT`
+- `mandatorCode` — must match the mandator you run with
+
+Verify:
+```bash
+podman exec redpanda rpk topic describe business-topic -p
+```
+
+---
+
+## 9. Running the Pipelines
+
+### Before running — check the time window
+
+Always confirm the time window for your chosen date and mandator before writing test data:
+
+```bash
+python3 show_window.py 2026-04-22 022
+```
+
+All `eventTimestamp` (status messages) and `std_enqueueTime` (business data) values in your JSONL files must fall inside the printed START → END range.
+
+### 9.1 Status messages pipeline
+
+```bash
+bash run_local.sh ASOF_DT [MANDATOR]
+
+# Examples
+bash run_local.sh 2026-04-22          # uses default mandator 022
+bash run_local.sh 2026-04-22 023      # explicit mandator
+```
+
+> Always run via `bash run_local.sh` — never run `python3 kafka_trigger_status_messages.py` directly. The runner sets all required DSF framework environment variables.
+
+Output:
+```
+output/data/CPSB4Q00_2026-04-22.par         ← pipe-delimited data file
+output/data/CPSB4Q00_2026-04-22_metadata.txt ← metadata file
+output/logs/                                 ← log file
+```
+
+### 9.2 Business data pipeline
+
+```bash
+bash run_get_kafka_local.sh ASOF_DT [MANDATOR]
+
+# Examples
 bash run_get_kafka_local.sh 2026-04-22
+bash run_get_kafka_local.sh 2026-04-22 023
 ```
 
-If you only reset one pipeline (e.g. you only care about get_kafka), you can skip the schema registration and produce steps for the other pipeline — but note both topics are always wiped together.
+> Always run via `bash run_get_kafka_local.sh` — never run `python3 00_get_kafka.py` directly. The runner creates a config symlink that the script needs (`1001_CPSB4QST_config.json → get_kafka_config.json`). Without it, `VALIDATE_TOPIC_MANDATOR` defaults to `YES` and the script fails immediately because the local topic name does not end with the mandator code.
+
+Output:
+```
+output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par ← business records
+output/logs/                                        ← log file
+```
+
+### 9.3 Integrated flow (status messages → business data)
+
+In production, `00_get_kafka.py` waits for the metadata file written by `kafka_trigger_status_messages.py` before consuming. To simulate this locally:
+
+```bash
+# Terminal 1 — run status messages first; it writes a metadata file when done
+bash run_local.sh 2026-04-22 022
+
+# Once Terminal 1 exits successfully, run business data
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+The metadata file is written to `output/data/` and read by `get_kafka` from that same path (controlled by `PC_LOD_PROC_PATH` in `run_get_kafka_local.sh`).
 
 ---
 
-## Re-run without restarting broker
+## 10. Reset and Cleanup
 
-If Redpanda is already running, skip steps 1–2 and repeat from step 3:
+Three levels of reset — pick the one that matches what you need.
+
+### 10.1 Wipe topic messages only (keep broker and schemas)
+
+Use when you want fresh messages but do not need to change the schema.
+
+```bash
+# Status messages topic
+podman exec redpanda rpk topic delete inflow-topic
+podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
+
+# Business data topic
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+```
+
+Schemas remain registered. Produce messages immediately after:
 
 ```bash
 python3 produce_messages.py
-bash run_local.sh 2026-05-20
+python3 produce_get_kafka_messages.py
 ```
 
----
+### 10.2 Full reset — wipe topics and schemas (keep broker running)
 
-## After DevPod Reconnect
-
-The Redpanda container stops when the DevPod disconnects. Do NOT run `start_kafka.sh` again — it will fail because a container named `redpanda` already exists.
-
-Instead, restart the existing stopped container:
+Use when starting a new test scenario, changing schemas, or clearing all data without restarting the broker.
 
 ```bash
-# Check current state (look for Exited or Running)
-podman ps -a | grep redpanda
+# Wipe topics + schemas only
+bash reset_kafka.sh
 
-# Restart the stopped container (fast — no image pull, no topic re-creation)
-podman start redpanda
-
-# Verify it's ready
-podman exec redpanda rpk cluster info
+# Wipe topics + schemas + output/ directory
+bash reset_kafka.sh --output
 ```
 
-If `rpk cluster info` succeeds, the broker is up and you can continue from Step 3 (produce messages).
+What `reset_kafka.sh` does:
+1. Deletes `inflow-topic` and `business-topic` (all messages gone)
+2. Permanently deletes both Schema Registry subjects
+3. Recreates both topics empty
 
-If the container is gone entirely (e.g. DevPod was rebuilt), run `bash start_kafka.sh` from scratch.
-
----
-
-## Running with a specific mandator
-
-`run_local.sh` accepts mandator as an optional second argument. If omitted it falls back to `022` with a warning:
+After running, **schemas are gone** — re-register before producing:
 
 ```bash
-# Default — shows WARNING: No mandator provided — falling back to default '022'
-bash run_local.sh 2026-04-22
-
-# Explicit mandator
-bash run_local.sh 2026-04-22 023
+python3 register_schema.py
+python3 register_get_kafka_schema.py
+python3 produce_messages.py
+python3 produce_get_kafka_messages.py
 ```
 
----
+### 10.3 Full teardown — stop and destroy container
 
-## Testing real scenarios
-
-Before running any scenario, always check the time window for your chosen `ASOF_DT` and mandator:
+Use when you are done for the day or want a completely clean slate next time.
 
 ```bash
-python3 show_window.py 2026-04-22 022
+bash stop_kafka.sh
 ```
 
-This prints the exact START and END timestamps the script will use. All `eventTimestamp` values in your JSONL data must fall inside this range unless the scenario specifically tests outside-window behaviour (Scenario F).
+This stops and removes the container. All messages and schemas are lost. Next time, start from Section 4 (fresh start).
 
 ---
 
-### Scenario A — Late publication (messages arrive after script starts)
+## 11. Scenarios — Status Messages Pipeline
 
-Simulates messages being published to Kafka after the script has already started consuming.
-The script enters retry mode (waiting for missing instances) and picks up the late messages on the next poll.
+All scenarios use `inflow-topic` and `run_local.sh`. Before each scenario:
 
-**Critical rule**: ALL messages — both the initial partial set AND the late ones — must have `eventTimestamp` within the time window. If the late messages have an `eventTimestamp` outside the window, the retry loop will NOT pick them up regardless of `MAX_LISTEN_DURATION_HOURS`.
+1. Run `python3 show_window.py DATE MANDATOR` to get your exact time window
+2. Reset the topic (Section 10.1) to start from a clean state
+3. Write your JSONL data with `eventTimestamp` values inside the window
 
-**Step 1 — Find your window first**:
+---
+
+### Scenario A — Late publication (missing instance arrives during retry)
+
+**What it tests**: Script starts with an incomplete instance set. Enters retry mode. The missing instance is published while it is waiting. Script detects it on next poll and completes.
+
+**Rule**: ALL messages — both initial and late — must have `eventTimestamp` inside the time window. The retry loop filters by Kafka timestamp, not by wall-clock time.
+
+**Step 1 — Check window:**
 ```bash
 python3 show_window.py 2026-04-22 022
 ```
 
-Note the START and END timestamps. All `eventTimestamp` values in both JSONL files must fall between these two values.
-
-**Step 2 — Create `input/part1.jsonl`** (instances 0–2, timestamps inside window):
+**Step 2 — Create `input/part1.jsonl`** (instances 0–2, `totalInstances=4`):
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 4, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 4, "numberOfMessagesPublished": 200}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:20+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 2, "totalInstances": 4, "numberOfMessagesPublished": 150}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:30+00:00"}
 ```
 
-**Step 3 — Create `input/part2.jsonl`** (instance 3 — the late one, timestamp still inside window):
+**Step 3 — Create `input/part2.jsonl`** (instance 3 — the late one):
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 3, "totalInstances": 4, "numberOfMessagesPublished": 175}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:50+00:00"}
 ```
 
-Note: `23:59:50` is still inside the `23:59:00 → 00:00:00` window. The message arrives LATE in real time (produced after the script starts) but its `eventTimestamp` is within the window — this is why the retry loop picks it up.
-
-**Step 4 — Run** (requires two terminals):
+**Step 4 — Reset topic and produce partial set:**
 ```bash
-# Terminal 1 — produce partial set, then start script
+podman exec redpanda rpk topic delete inflow-topic
+podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 python3 produce_messages.py --file input/part1.jsonl
-bash run_local.sh 2026-04-22 022
-# Script finds instances 0,1,2 — fails validation (missing instance 3) — enters retry loop
 ```
 
+**Step 5 — Two terminals:**
 ```bash
-# Terminal 2 — while script is in retry loop, publish the late message
+# Terminal 1 — start script (finds 3 instances, enters retry loop)
+bash run_local.sh 2026-04-22 022
+
+# Terminal 2 — while Terminal 1 is waiting, publish the late instance
 python3 produce_messages.py --file input/part2.jsonl
-# Script in Terminal 1 picks it up on next poll (within RETRY_WAIT_SECONDS=5)
 ```
 
-**Expected**: Script logs `Missing instances: [3]` → retries → finds instance 3 → validation passes → writes output.
+**Expected**: Terminal 1 logs `Missing instances: [3]` → polls → finds instance 3 → `Validation passed` → writes output.
 
 ---
 
 ### Scenario B — Mixed mandator messages
 
-Simulates a topic containing messages from multiple mandators. Script must only process messages matching `DSF_MANDATOR` and ignore all others.
+**What it tests**: Topic contains messages from two mandators. Script must process only its mandator and ignore all others.
 
-**Step 1 — Find your window**:
+**Step 1 — Check window:**
 ```bash
 python3 show_window.py 2026-04-22 022
 ```
 
-All `eventTimestamp` values below must fall within the printed START → END range.
-
-**Step 2 — Create `input/scenario_b.jsonl`** — two complete sets, mandators 022 and 023 interleaved:
+**Step 2 — Create `input/scenario_b.jsonl`** (mandators 022 and 023 interleaved):
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 2, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:05+00:00"}
 {"status": {"mandatorCode": "023", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 2, "numberOfMessagesPublished": 300}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
@@ -318,93 +615,77 @@ All `eventTimestamp` values below must fall within the printed START → END ran
 {"status": {"mandatorCode": "023", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 2, "numberOfMessagesPublished": 400}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:20+00:00"}
 ```
 
-4 messages total — 2 for mandator 022 (counts 100, 200), 2 for mandator 023 (counts 300, 400).
-
-**Step 3 — Wipe topic and produce**:
+**Step 3 — Reset topic and produce:**
 ```bash
 podman exec redpanda rpk topic delete inflow-topic
 podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 python3 produce_messages.py --file input/scenario_b.jsonl
 ```
 
-Verify 4 messages in topic:
-```bash
-podman exec redpanda rpk topic describe inflow-topic -p
-```
-
-**Step 4 — Run targeting mandator 022**:
+**Step 4 — Run for mandator 022:**
 ```bash
 bash run_local.sh 2026-04-22 022
 ```
 
-**Expected**:
-- Script filters to mandatorCode=022 only → finds instances 0 and 1 (counts 100, 200)
-- Mandator 023 messages are in the topic but completely ignored
-- Output file contains only 022 data
+**Expected**: Only 022 messages processed (counts 100, 200). 023 messages ignored.
 
-**Step 5 — Verify the other side** (optional): re-run targeting 023:
+**Optional — verify the other side:**
 ```bash
 bash run_local.sh 2026-04-22 023
 ```
 
-This time only the 023 messages (counts 300, 400) are processed.
+Only 023 messages (counts 300, 400) appear in output.
 
 ---
 
-### Scenario C — Publishing while script is running
+### Scenario C — Publishing while script is running (empty topic start)
 
-Simulates starting the script against an empty topic, then producing messages while it is actively listening. Tests that the script detects new messages during its retry cycle without needing a restart.
+**What it tests**: Script starts against an empty topic, enters retry loop immediately, then messages are published while it is waiting. Tests that it detects new messages without a restart.
 
-**Step 1 — Find your window**:
+**Step 1 — Check window:**
 ```bash
 python3 show_window.py 2026-04-22 022
 ```
 
-**Step 2 — Wipe topic so it starts empty**:
-```bash
-podman exec redpanda rpk topic delete inflow-topic
-podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
-```
-
-**Step 3 — Create `input/scenario_c.jsonl`** — complete set with timestamps inside window:
+**Step 2 — Create `input/scenario_c.jsonl`** (complete set):
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 3, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 3, "numberOfMessagesPublished": 200}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:20+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 2, "totalInstances": 3, "numberOfMessagesPublished": 150}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:30+00:00"}
 ```
 
-**Step 4 — Run** (requires two terminals):
+**Step 3 — Reset to empty topic:**
+```bash
+podman exec redpanda rpk topic delete inflow-topic
+podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
+```
+
+**Step 4 — Two terminals:**
 ```bash
 # Terminal 1 — start script against empty topic
-# ALLOW_NO_DATA=YES means it enters retry loop immediately and keeps polling
 bash run_local.sh 2026-04-22 022
-# Script finds 0 messages → enters retry loop → polls every RETRY_WAIT_SECONDS
-```
+# Logs: 0 messages found → enters retry loop
 
-```bash
-# Terminal 2 — produce all messages while script is in retry loop
+# Terminal 2 — produce while script is waiting (must be before MAX_LISTEN_DURATION_HOURS expires)
 python3 produce_messages.py --file input/scenario_c.jsonl
-# Script in Terminal 1 detects new messages on next poll and processes them
 ```
 
-**Key timing**: produce the messages BEFORE `MAX_LISTEN_DURATION_HOURS` expires. With the default `0.05` hours (~3 min) and `RETRY_WAIT_SECONDS=5`, you have ~3 minutes from script start to produce.
+Default `MAX_LISTEN_DURATION_HOURS=0.05` (~3 minutes). Produce before it expires.
 
-**Expected**:
-- Terminal 1 logs: `0 messages found` → retries → `Found 3 messages` → validation passes → writes output
-- `output/data/` — output file written with all 3 instances
+**Expected**: Terminal 1 picks up messages on next poll → validation passes → output written.
 
 ---
 
-### Scenario D — Multiple runIds (max runId selection test)
+### Scenario D — Multiple runIds (max runId selection)
 
-**What it tests**: Topic has messages from two different `reconciliationGroupId` values. Script must select max runId only — core business logic.
+**What it tests**: Topic has messages for two different `reconciliationGroupId` values. Script must select the highest runId only — a core business rule.
 
-**Step 1 — Find your window**:
+**Step 1 — Check window:**
 ```bash
 python3 show_window.py 2026-04-22 022
 ```
 
-**Step 2 — Create `input/scenario_d.jsonl`**: two complete sets, same mandator/date, different runIds:
+**Step 2 — Create `input/scenario_d.jsonl`** (runId 1 and runId 2, same mandator/date):
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 2, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:05+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 2, "numberOfMessagesPublished": 200}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
@@ -412,255 +693,226 @@ python3 show_window.py 2026-04-22 022
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 2, "instanceIndex": 1, "totalInstances": 2, "numberOfMessagesPublished": 250}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:20+00:00"}
 ```
 
-**Step 3 — Wipe topic and produce**:
+**Step 3 — Reset topic and produce:**
 ```bash
 podman exec redpanda rpk topic delete inflow-topic
 podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 python3 produce_messages.py --file input/scenario_d.jsonl
 ```
 
-**Step 4 — Run**:
+**Step 4 — Run:**
 ```bash
 bash run_local.sh 2026-04-22 022
 ```
 
-**Expected**: Script logs `max reconciliationGroupId = 2` and outputs only the runId=2 messages (instances 0,1 with counts 150, 250).
+**Expected**: Script logs `max reconciliationGroupId = 2`. Output contains only runId=2 messages (counts 150, 250). RunId=1 messages are in the topic but not written.
 
 ---
 
-### Scenario E — Timeout with incomplete data
+### Scenario E — Timeout with permanently incomplete data
 
-**What it tests**: Script enters retry loop, `MAX_LISTEN_DURATION_HOURS` expires before missing instances arrive. Script must exit cleanly.
+**What it tests**: Script enters retry loop but the missing instance never arrives. Script must exhaust `MAX_LISTEN_DURATION_HOURS` and exit cleanly.
 
-**Step 1 — Find your window**:
+**Step 1 — Check window:**
 ```bash
 python3 show_window.py 2026-04-22 022
 ```
 
-**Step 2 — Create `input/scenario_e.jsonl`**: only instances 0 and 1 of a 3-instance set (instance 2 never arrives):
+**Step 2 — Create `input/scenario_e.jsonl`** (instances 0 and 1 only — instance 2 will never arrive):
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 3, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:05+00:00"}
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 3, "numberOfMessagesPublished": 200}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
 ```
 
-**Step 3 — Set a short timeout** in `status_messages_config.json` before running (restore after):
+**Step 3 — Set a short timeout** in `status_messages_config.json` (restore after testing):
 ```json
 "MAX_LISTEN_DURATION_HOURS": "0.02",
 "RETRY_WAIT_SECONDS": "5"
 ```
 
-**Step 4 — Wipe topic and produce**:
+**Step 4 — Reset topic and produce:**
 ```bash
 podman exec redpanda rpk topic delete inflow-topic
 podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 python3 produce_messages.py --file input/scenario_e.jsonl
 ```
 
-**Step 5 — Run**:
+**Step 5 — Run (do not produce instance 2):**
 ```bash
 bash run_local.sh 2026-04-22 022
 ```
 
-**Expected**: Script retries every 5s, logs `Missing instances: [2]`, exits after ~1 min with `ALLOW_NO_DATA` result. Do NOT produce instance 2 — let it time out.
+**Expected**: Script logs `Missing instances: [2]` on every retry → exits after ~1 minute with a validation failure message. No output file written. Restore `MAX_LISTEN_DURATION_HOURS` after.
 
 ---
 
-### Scenario F — Messages outside time window
+### Scenario F — Messages outside the time window
 
-**What it tests**: Topic contains messages with `eventTimestamp` outside the configured window. Script must ignore them — the time-window filter is the first gate before any business logic runs.
+**What it tests**: Messages are in the topic but have `eventTimestamp` outside the configured window. Script must ignore them — the time filter is the first gate before any business logic.
 
-**How the window works**:
-
-The script computes a start and end Kafka offset from `LOCATION_TIME_WINDOW` in the config. Only messages whose Kafka timestamp (set from `eventTimestamp` by `produce_messages.py`) falls inside that range are visible to the script. Messages outside it are in the topic but never read.
-
-**Step 1 — Find your exact window**:
-
-Always run this first — the window changes with every `ASOF_DT`:
+**Step 1 — Find your exact window:**
 ```bash
 python3 show_window.py 2026-04-22 022
 ```
 
-Example output for `2026-04-22`:
+Example output:
 ```
 Window START : 2026-04-22T23:59:00+00:00
 Window END   : 2026-04-23T00:00:00+00:00
-
-Timestamps INSIDE window  → script will process these:
-  e.g.  "2026-04-22T23:59:30+00:00"
-
-Timestamps OUTSIDE window → script will IGNORE these:
-  before window:  "2026-04-22T17:59:00+00:00"
-  after  window:  "2026-04-23T06:00:00+00:00"
 ```
 
-The window is exactly 1 minute (23:59 → 00:00 crossing midnight). Anything before 23:59 or after 00:00 is outside.
-
-**Step 2 — Create `input/scenario_f.jsonl` using an outside-window timestamp**:
-
-Use the `before window` value from `show_window.py` output as `eventTimestamp`:
+**Step 2 — Create `input/scenario_f.jsonl`** using a timestamp BEFORE the window start:
 ```json
 {"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 1, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T17:59:00+00:00"}
 ```
 
-`17:59:00` is 6 hours before the `23:59` window start — the script will never see it.
+`17:59:00` is 6 hours before the `23:59` window start.
 
-**Step 3 — Wipe topic and produce the outside-window message**:
+**Step 3 — Reset topic and produce the outside-window message:**
 ```bash
 podman exec redpanda rpk topic delete inflow-topic
 podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 python3 produce_messages.py --file input/scenario_f.jsonl
 ```
 
-**Step 4 — Confirm the message IS in the topic**:
+**Step 4 — Confirm message is in topic but script cannot see it:**
 ```bash
 podman exec redpanda rpk topic describe inflow-topic -p
+# HIGH-WATERMARK = 1 (message is there)
 ```
 
-`HIGH-WATERMARK` must show `1` — the message is there, the script just won't find it.
-
-**Step 5 — Run the script**:
+**Step 5 — Run:**
 ```bash
 bash run_local.sh 2026-04-22 022
 ```
 
-**Expected**:
-- Script finds 0 messages in the 23:59–00:00 window
-- Enters retry loop, waits `RETRY_WAIT_SECONDS` between attempts
-- Exits after `MAX_LISTEN_DURATION_HOURS` with `ALLOW_NO_DATA` result
-- `output/data/` — no output file written
+**Expected**: Script finds 0 messages in the 23:59–00:00 window → retry loop → exits after timeout. No output file.
 
-**Step 6 — Optional: confirm filter isolation**
-
-Now produce an inside-window message and re-run — the script must process only the inside-window message and still ignore the outside one:
+**Optional — confirm isolation**: produce an inside-window message and re-run. Only the inside-window message appears in output:
 ```bash
 python3 produce_messages.py --file input/status_messages_data.jsonl
 bash run_local.sh 2026-04-22 022
 ```
 
-Both messages are in the topic but only the `23:59` one appears in output.
-
 ---
 
-### Scenario G — Re-run behaviour and USR_VAL=1 backup mechanism
+### Scenario G — Re-run behaviour and backup mechanism
 
-**What it tests**: what the script does when run twice for the same `ASOF_DT`, and how the `{SDA}_USR_VAL=1` production re-run mode backs up the previous output.
+**What it tests**: Running the script twice for the same `ASOF_DT`. Verifies data is re-exported correctly, and that `USR_VAL=1` (production re-run mode) renames the previous output to a backup file.
 
----
-
-**Re-running always re-exports the same data** (verified in script)
-
-Running the script twice for the same date re-reads and re-exports the same messages. This happens regardless of USR_VAL:
-
-- **USR_VAL=0** (local simulation default): collect pass sees committed offsets past the window end and skips the partition. But `ALLOW_NO_DATA=YES` then fires the retry loop, which seeks directly back to `start_offset` with no committed offset check — reads the same messages again and writes output.
-- **USR_VAL=1** (production re-run): script always seeks to `start_offset`, ignores committed offsets entirely. Old output file is renamed to `.1` before writing.
-
-The committed offset in the collect pass is useful for **mid-run crash recovery** — if the script crashes after partially committing, the next run resumes from the committed position instead of re-reading from the start of the window. It does not prevent a full re-run.
-
----
-
-**Part 1 — Default re-run (USR_VAL=0, ALLOW_NO_DATA=YES)**
-
-**Data** — create `input/scenario_g.jsonl`:
-
-```json
-{"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 3, "numberOfMessagesPublished": 100}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:10+00:00"}
-{"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 3, "numberOfMessagesPublished": 200}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:20+00:00"}
-{"status": {"mandatorCode": "022", "businessDate": "2026-04-22", "reconciliationGroupId": 1, "instanceIndex": 2, "totalInstances": 3, "numberOfMessagesPublished": 150}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-04-22T23:59:30+00:00"}
-```
-
-**Steps**:
+**Part 1 — Default re-run (USR_VAL=0)**
 
 ```bash
 podman exec redpanda rpk topic delete inflow-topic
 podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
-python3 produce_messages.py --file input/scenario_g.jsonl
-bash run_local.sh 2026-04-22 022    # first run
-ls -l output/data/                  # note file timestamp and size
-bash run_local.sh 2026-04-22 022    # second run — NO topic wipe
-ls -l output/data/                  # file is rewritten with same content
+python3 produce_messages.py --file input/status_messages_data.jsonl
+bash run_local.sh 2026-04-22 022   # first run
+ls -l output/data/                 # note file timestamp
+bash run_local.sh 2026-04-22 022   # second run — no topic wipe
+ls -l output/data/                 # same file, updated timestamp
 ```
 
-**Expected log sequence on second run**:
+On the second run the script detects committed offsets at the end of the window, enters retry mode, re-reads from start offset, and rewrites the same output.
 
-```
-Consumer mode: TIME_WINDOW — seeking from time window start offset (SDA_USR_DEF_VAl != 1)
-last committed offset: 2
-No valid uncommitted data on the kafka topic for partition ... between 0 and 2
-Total messages collected from all partitions: 0
-ALLOW_NO_DATA is set to YES, will enter wait-and-listen mode
-=== Retry mode: collecting messages for validation ====
-seek to start offset: 0
-Retry mode: validation passed
-writing validated data to output/data/CPSB4Q00_2026-04-22.par
-Exiting (code 0): data successfully consumed and written to output/data/CPSB4Q00_2026-04-22.par
-```
+**Part 2 — Production re-run mode (USR_VAL=1) — backup**
 
-**Expected output/data/ after second run**:
-
-```
-output/data/CPSB4Q00_2026-04-22.par    ← rewritten with same 3 rows
-```
-
----
-
-**Part 2 — Production re-run mode (USR_VAL=1) — output backup**
-
-When the framework schedules a deliberate re-run it sets `USR_VAL=1`. The script renames the existing output file to `.1` before writing — this is the backup mechanism.
-
-To simulate locally, temporarily change `TEST_USR_VAL="0"` to `TEST_USR_VAL="1"` in `run_local.sh`, then run:
+Temporarily edit `run_local.sh`: change `TEST_USR_VAL="0"` to `TEST_USR_VAL="1"`, then:
 
 ```bash
-bash run_local.sh 2026-04-22 022    # first run — writes CPSB4Q00_2026-04-22.par
-bash run_local.sh 2026-04-22 022    # second run with USR_VAL=1
+bash run_local.sh 2026-04-22 022   # first run
+bash run_local.sh 2026-04-22 022   # second run with USR_VAL=1
 ls -l output/data/
 ```
 
-**Expected log sequence on second run**:
-
+Expected after second run:
 ```
-Consumer mode: CONSUMED_COMMITTED — seeking from last committed offset (SDA_USR_DEF_VAl=1)
-First run for this date detected, data in output/data/CPSB4Q00_2026-04-22.par.1
-Seeked to offset 0 for partition 0
-Validation passed; Writing data for, max run id is 1
-writing validated data to output/data/CPSB4Q00_2026-04-22.par
-Exiting (code 0): data successfully consumed and written to output/data/CPSB4Q00_2026-04-22.par
+output/data/CPSB4Q00_2026-04-22.par    ← fresh output
+output/data/CPSB4Q00_2026-04-22.par.1  ← backup of first run
 ```
 
-**Expected output/data/ after second run**:
-
-```
-output/data/CPSB4Q00_2026-04-22.par      ← fresh file — same 3 rows re-exported
-output/data/CPSB4Q00_2026-04-22.par.1    ← backup of the first run output
-```
-
-Restore `TEST_USR_VAL="0"` in `run_local.sh` after testing.
+Restore `TEST_USR_VAL="0"` when done.
 
 ---
 
 ### Scenario H — Empty topic
 
-**What it tests**: Script runs against a topic with zero messages and `ALLOW_NO_DATA=YES`. Must wait and exit gracefully, not crash.
+**What it tests**: Script runs against a topic with zero messages. Must enter retry loop and exit gracefully without crashing.
 
-**Setup**: Wipe the topic so it is empty:
 ```bash
 podman exec redpanda rpk topic delete inflow-topic
 podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
-```
-
-**Run**:
-```bash
 bash run_local.sh 2026-04-22 022
 ```
 
-**Expected**: Script logs no messages found, retries every `RETRY_WAIT_SECONDS`, exits after `MAX_LISTEN_DURATION_HOURS` with a clean `ALLOW_NO_DATA` result. No crash, no exception.
+**Expected**: Script logs no messages found → retries every `RETRY_WAIT_SECONDS` → exits after `MAX_LISTEN_DURATION_HOURS`. No crash. No output file.
 
 ---
 
-## Fixing Duplicate Messages in Topic
+## 12. Scenarios — Business Data Pipeline
 
-If the script reports `VALIDATION FAILED: Duplicate instanceIds found`, it usually means `produce_messages.py` was run more than once without clearing the topic first.
+All scenarios use `business-topic` and `run_get_kafka_local.sh`. The time window for `ASOF_DT=2026-04-22` is `2026-04-22T16:00:00` → `2026-04-23T16:00:00` (24-hour window). All `std_enqueueTime` values must fall in this range.
 
-**Verify duplicates (decodes Avro, counts per instanceIndex):**
+---
+
+### Scenario — Normal run (all records inside window)
+
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected**:
+```
+output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par  ← one JSON line per record
+```
+
+Log confirms:
+```
+DT_UTC_START: 2026-04-22 16:00:00
+DT_UTC_END:   2026-04-23 16:00:00
+Exiting (code 0): data successfully consumed and written to ...CPSB4QST.par
+```
+
+---
+
+### Scenario — Records outside the time window
+
+**Step 1 — Create `input/business_outside_window.jsonl`** with `std_enqueueTime` before `2026-04-22T16:00:00`:
+```json
+{"std_enqueueTime": "2026-04-22T10:00:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-999", "productType": "EQUITY", "quantity": 100.0, "currency": "USD", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+```
+
+**Step 2 — Reset topic and produce:**
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py --file input/business_outside_window.jsonl
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected**: Script finds 0 records in the 16:00–16:00 window → retry loop → exits after timeout. No output file.
+
+---
+
+### Scenario — Empty topic
+
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected**: Script finds 0 records → retries every `RETRY_WAIT_SECONDS` → exits cleanly after timeout.
+
+---
+
+### Scenario — Duplicate records in topic
+
+If the script reports `VALIDATION FAILED: Duplicate instanceIds found` it usually means `produce_messages.py` was run more than once without wiping the topic first.
+
+**Diagnose — count messages per instanceIndex:**
 ```bash
 python3 -c "
 import io, json, requests
@@ -684,215 +936,105 @@ for idx, count in sorted(counts.items()):
 "
 ```
 
-**Fix — wipe the topic and re-produce once:**
+**Fix — wipe topic and re-produce once:**
 ```bash
 podman exec redpanda rpk topic delete inflow-topic
 podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
 python3 produce_messages.py
-```
-
-Then re-run the pipeline:
-```bash
-bash run_local.sh 2026-04-22
-```
-
----
-
-## Teardown
-
-```bash
-bash stop_kafka.sh
-```
-
----
-
-## Troubleshooting
-
-| Symptom | Likely cause |
-|---|---|
-| `podman pull` fails with EOF | Use internal registry: `container-registry.ubs.net/base-images/redpanda:latest-23.2-alpine-20231028` |
-| Port mapping warnings | Expected — `--network=host` mode ignores `-p` flags; ports bind directly |
-| `register_schema.py` fails — file not found | Put schema in `input/status_messages_schema.json` |
-| Script exits with no data | Check `ASOF_DT` matches the `businessDate` in your JSONL records |
-| `register_get_kafka_schema.py` fails — file not found | Put schema in `input/business_data_schema.json` |
-| `00_get_kafka.py` exits with no data | Check `ASOF_DT` matches `tradeDate` in JSONL and `std_enqueueTime` is inside the 16:00–16:00 window |
-| `Topic validation failed — does not contain mandator 022` | Config not loaded — symlink `1001_CPSB4QST_config.json` is missing. Run `ln -s get_kafka_config.json 1001_CPSB4QST_config.json` then use `bash run_get_kafka_local.sh` |
-| `No module named 'dsf_logging'` | Copy `dsf_logging.py` stub from UBS environment |
-| `No module named 'assertf'` | `assertf.py` stub is already in this folder — make sure Python path includes it |
-
----
-
-# 00_get_kafka.py Simulation
-
-`00_get_kafka.py` consumes business data records from `business-topic` and writes them to a `.par` output file. It is separate from the status messages pipeline — both use the same Redpanda broker but different topics.
-
-## Files added for this simulation
-
-| File | Purpose |
-|---|---|
-| `00_get_kafka.py` | Copied from `trigger_based_new/`, SSL removed |
-| `get_kafka_config.json` | Local sim config — points to `localhost:9092` and `business-topic` |
-| `run_get_kafka_local.sh` | Runner script — sets all required env vars |
-| `register_get_kafka_schema.py` | Registers business data schema with local registry |
-| `produce_get_kafka_messages.py` | Produces Avro business records into `business-topic` |
-| `input/business_data_schema.json` | Sample Avro schema with `std_enqueueTime` timestamp field |
-| `input/business_data.jsonl` | Sample business records for testing |
-
-## Time window for business data
-
-The business data window is `START_TS=16:00:00, START_DT_OFFSET=0, STOP_TS=16:00:00, STOP_DT_OFFSET=-1`.
-
-For `ASOF_DT=2026-04-22` this means:
-
-```
-Window START : 2026-04-22T16:00:00  (same day, 16:00)
-Window END   : 2026-04-23T16:00:00  (next day, 16:00)  ← STOP_DT_OFFSET=-1 means day+1
-```
-
-That is a full 24-hour window. All `std_enqueueTime` values in your JSONL must fall between `2026-04-22T16:00:00+00:00` and `2026-04-23T16:00:00+00:00`.
-
-Use `show_window.py` to verify:
-
-```bash
-python3 show_window.py 2026-04-22 022
-```
-
-Note: `show_window.py` reads from `status_messages_config.json` (status messages window). The business data window is in `get_kafka_config.json` under `LOCATION_TIME_WINDOW`. Verify manually using the formula above if the windows differ.
-
-## Run sequence (each test session)
-
-Broker must already be running from `bash start_kafka.sh`. Then:
-
-```bash
-# Step 1 — Register business data schema
-python3 register_get_kafka_schema.py
-
-# Step 2 — Produce test business records
-python3 produce_get_kafka_messages.py
-
-# Step 3 — Run the consumer
-bash run_get_kafka_local.sh 2026-04-22
-```
-
-> **Always run via `bash run_get_kafka_local.sh`** — never run `python3 00_get_kafka.py` directly.
-> The runner creates the symlink `1001_CPSB4QST_config.json → get_kafka_config.json` that the script
-> needs to load its config. Without it the script falls back to built-in defaults, which enables
-> `VALIDATE_TOPIC_MANDATOR=YES`. That check requires the Kafka topic name to end with the mandator
-> code (e.g. `business-topic-022`) — a production naming convention that the local topic
-> `business-topic` does not follow, causing an immediate `Topic validation failed` error even though
-> your data contains the correct `mandatorCode`.
->
-> **If you see `Topic validation failed` for mandator `022`**: the config was not loaded. Fix:
-> ```bash
-> # Verify the symlink exists
-> ls -la 1001_CPSB4QST_config.json
->
-> # If missing, create it manually
-> ln -s get_kafka_config.json 1001_CPSB4QST_config.json
->
-> # Then re-run via the runner
-> bash run_get_kafka_local.sh 2026-04-22
-> ```
-
-## Check output
-
-```
-output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par    ← business records (JSON lines)
-output/logs/                                           ← log file
-```
-
-## Inspect the business topic
-
-```bash
-# How many messages are in the topic
-podman exec redpanda rpk topic describe business-topic -p
-
-# Read all messages (raw bytes — not human-readable because Avro-encoded)
-podman exec redpanda rpk topic consume business-topic --offset start --num 5
-
-# Wipe and re-produce
-podman exec redpanda rpk topic delete business-topic
-podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
-python3 produce_get_kafka_messages.py
-```
-
-## What WAIT_FOR_SUBMIT does
-
-In production `WAIT_FOR_SUBMIT=YES` means `00_get_kafka.py` waits for the status messages metadata file (written by `kafka_trigger_status_messages.py`) before consuming. This tells it how many records to expect and validates the count.
-
-In the local simulation `get_kafka_config.json` sets `WAIT_FOR_SUBMIT=NO` so the two scripts run independently. To test the full integrated flow (status messages → metadata → get_kafka validation), run:
-
-```bash
-# Terminal 1 — run status messages first
 bash run_local.sh 2026-04-22 022
-
-# Then run get_kafka once metadata file exists
-bash run_get_kafka_local.sh 2026-04-22 022
 ```
 
-The metadata file is written to `output/data/` by the status messages script and read from `output/get_kafka/` by get_kafka. Adjust `PC_LOD_PROC_PATH` in `run_get_kafka_local.sh` if you want both scripts to share the same output directory.
+---
 
-## SSL changes applied to 00_get_kafka.py
+## 13. Command Index
 
-The same 3 changes as `kafka_trigger_status_messages.py` — verified at these lines:
+Quick reference for all commands. Use this for diagnosis — no need to scroll the full document.
 
-| Change | Line | Before | After |
-|---|---|---|---|
-| Schema registry session | 106 | `session.verify = ca_file` + `session.cert = ...` | `session.verify = False` |
-| Schema registry URL | 112 | `https://` | `http://` |
-| KafkaConsumer | 806 | `security_protocol="SSL"` + 4 ssl_ lines | `security_protocol="PLAINTEXT"` |
+### Container management
 
-## Test scenarios for get_kafka
+| Command | What it does |
+|---|---|
+| `podman ps -a \| grep redpanda` | Check container state: `Up` = running, `Exited` = stopped, nothing = destroyed |
+| `podman start redpanda` | Restart a stopped container (fast, preserves topics and schemas) |
+| `bash start_kafka.sh` | Create and start a new container with both topics (use only when container is gone) |
+| `bash stop_kafka.sh` | Stop and destroy the container (loses all schemas) |
 
-The same scenario principles apply as for status messages — the key difference is the topic (`business-topic`), the timestamp field (`std_enqueueTime`), and the 24-hour window.
+### Broker health
 
-### Scenario — Normal run (all records in window)
+| Command | What it does |
+|---|---|
+| `podman exec redpanda rpk cluster info` | Verify broker is ready and healthy |
+| `podman exec redpanda rpk topic list` | List all topics currently in the broker |
 
-```bash
-podman exec redpanda rpk topic delete business-topic
-podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
-python3 produce_get_kafka_messages.py
-bash run_get_kafka_local.sh 2026-04-22 022
-```
+### Topic inspection
 
-**Expected**:
+| Command | What it does |
+|---|---|
+| `podman exec redpanda rpk topic describe <topic> -p` | Show partition details including `HIGH-WATERMARK` (= total message count) |
+| `podman exec redpanda rpk topic consume <topic> --num 10` | Read the last 10 messages (raw bytes for Avro-encoded topics) |
+| `podman exec redpanda rpk topic consume <topic> --offset start` | Read all messages from the beginning |
 
-```
-output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par  ← 5 JSON lines (one per record)
-```
+### Topic management
 
-Log will show:
+| Command | What it does |
+|---|---|
+| `podman exec redpanda rpk topic delete <topic>` | Delete topic and all its messages |
+| `podman exec redpanda rpk topic create <topic> --partitions 1 --replicas 1` | Create an empty topic |
 
-```
-INFLOW_TOPIC: business-topic
-DT_UTC_START: 2026-04-22 16:00:00
-DT_UTC_END:   2026-04-23 16:00:00
-Exiting (code 0): data successfully consumed and written to ...CPSB4QST.par
-```
+### Schema registry
 
-### Scenario — Records outside time window
+| Command | What it does |
+|---|---|
+| `curl http://localhost:8081/subjects` | List all registered schema subjects |
+| `curl http://localhost:8081/subjects/<subject>/versions/latest \| python3 -m json.tool` | View current schema for a subject (pretty-printed) |
+| `curl -X DELETE http://localhost:8081/subjects/<subject>` | Delete a schema subject (do before re-registering) |
+| `python3 register_schema.py` | Register status messages schema (`inflow-topic-value`) |
+| `python3 register_get_kafka_schema.py` | Register business data schema (`business-topic-value`) |
 
-Create `input/business_outside_window.jsonl` using `std_enqueueTime` before `2026-04-22T16:00:00`:
+Subject names used in this environment:
+- `inflow-topic-value` — status messages schema
+- `business-topic-value` — business data schema
 
-```json
-{"std_enqueueTime": "2026-04-22T10:00:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-999", "productType": "EQUITY", "quantity": 100.0, "currency": "USD", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
-```
+### Producing messages
 
-```bash
-podman exec redpanda rpk topic delete business-topic
-podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
-python3 produce_get_kafka_messages.py --file input/business_outside_window.jsonl
-bash run_get_kafka_local.sh 2026-04-22 022
-```
+| Command | What it does |
+|---|---|
+| `python3 produce_messages.py` | Produce status messages from `input/status_messages_data.jsonl` |
+| `python3 produce_messages.py --file input/custom.jsonl` | Produce from a custom JSONL file |
+| `python3 produce_get_kafka_messages.py` | Produce business records from `input/business_data.jsonl` |
+| `python3 produce_get_kafka_messages.py --file input/custom.jsonl` | Produce business records from a custom file |
 
-**Expected**: script finds 0 records in the 16:00–16:00 window, enters retry loop, exits after `MAX_LISTEN_DURATION_HOURS` with `ALLOW_NO_DATA` result. No output file written.
+### Running pipelines
 
-### Scenario — Empty topic
+| Command | What it does |
+|---|---|
+| `bash run_local.sh DATE [MANDATOR]` | Run the status messages pipeline |
+| `bash run_get_kafka_local.sh DATE [MANDATOR]` | Run the business data pipeline |
+| `python3 show_window.py DATE MANDATOR` | Print exact time window for a given date + mandator |
 
-```bash
-podman exec redpanda rpk topic delete business-topic
-podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
-bash run_get_kafka_local.sh 2026-04-22 022
-```
+### Reset
 
-**Expected**: script finds 0 records, retries every `RETRY_WAIT_SECONDS=5`, exits cleanly after timeout.
+| Command | What it does |
+|---|---|
+| `bash reset_kafka.sh` | Wipe both topics and all schemas (broker keeps running) |
+| `bash reset_kafka.sh --output` | Same as above, also clears `output/` directory |
+
+---
+
+## 14. Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `podman pull` fails with EOF | Not using internal registry | Use `container-registry.ubs.net/base-images/redpanda:latest-23.2-alpine-20231028` |
+| `bash start_kafka.sh` fails — container name already in use | Container already exists (stopped) | Run `podman start redpanda` instead |
+| Port mapping warnings in `start_kafka.sh` output | Expected with `--network=host` — ports bind directly | Ignore; ports work fine |
+| `register_schema.py` fails — file not found | Schema file missing | Place schema at `input/status_messages_schema.json` |
+| `register_get_kafka_schema.py` fails — file not found | Schema file missing | Place schema at `input/business_data_schema.json` |
+| Script exits with no data | `ASOF_DT` does not match `businessDate` in JSONL | Confirm date matches. Run `show_window.py` to verify window |
+| `Topic validation failed — does not contain mandator 022` | Config symlink missing — running script directly | Always use `bash run_get_kafka_local.sh`; if symlink is gone: `ln -s get_kafka_config.json 1001_CPSB4QST_config.json` |
+| `VALIDATION FAILED: Duplicate instanceIds found` | Topic not wiped between produce runs | Delete + recreate topic, produce once only |
+| `No module named 'dsf_logging'` | DSF stub missing | Ensure `dsf_logging.py` stub is in the directory |
+| `No module named 'assertf'` | `assertf.py` stub missing | `assertf.py` is already in this folder; check Python path |
+| `Cannot check mandator — 'status.mandatorCode' column missing` | Message structure issue during topic match report | Check messages in topic with `rpk topic consume inflow-topic --offset start` |
+| Script hangs for a long time then exits with no output | Messages are in topic but `eventTimestamp` is outside window | Run `show_window.py` and check all JSONL timestamps are inside the range |
+| `Schema not found` error from script | Schema not registered or registry was wiped | Run `python3 register_schema.py` (and `register_get_kafka_schema.py` for business data) |
