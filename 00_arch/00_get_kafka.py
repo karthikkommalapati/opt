@@ -411,6 +411,7 @@ def log_failure_analysis(
     dsf_logger.log_msg(sep, level=40)
 
 
+
 def write_get_kafka_validation_log(
     log_file: str,
     username: str,
@@ -422,8 +423,10 @@ def write_get_kafka_validation_log(
     actual_count: int,
     tolerance_pct: float,
     separator: str = "|",
+    status: str = "SUCCESS",
+    failure_reason: str = "",
 ) -> None:
-    """Append one row to the get_kafka success validation log."""
+    """Append one row to the get_kafka validation log (success or failure)."""
     low = expected_count - expected_count * tolerance_pct / 100.0
     fields = {
         "export_datetime":          datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
@@ -437,6 +440,8 @@ def write_get_kafka_validation_log(
         "tolerance_pct":            str(tolerance_pct),
         "tolerance_lower":          str(int(low)),
         "tolerance_upper":          "unlimited",
+        "status":                   status,
+        "failure_reason":           failure_reason,
     }
     header_row = separator.join(fields.keys())
     data_row   = separator.join(fields.values())
@@ -575,6 +580,9 @@ METADATA_FILTER_COLUMNS: List[str] = list(CONFIG.get("METADATA_FILTER_COLUMNS", 
 METADATA_FILTER_FIELD_MAP: dict = dict(CONFIG.get("METADATA_FILTER_FIELD_MAP", {}))
 METADATA_COUNT_FIELD: str = str(CONFIG.get("METADATA_COUNT_FIELD", "total_messages_published"))
 METADATA_COUNT_TOLERANCE_PCT: float = float(CONFIG.get("METADATA_COUNT_TOLERANCE_PCT", 10))
+_location_tol = CONFIG.get("LOCATION_TOLERANCE_PCT", {}).get(DSF_MANDATOR)
+if _location_tol is not None:
+    METADATA_COUNT_TOLERANCE_PCT = float(_location_tol)
 MAX_LISTEN_DURATION_HOURS: float = float(CONFIG.get("MAX_LISTEN_DURATION_HOURS", 2))
 MAX_LISTEN_DURATION_MINUTES: int = int(MAX_LISTEN_DURATION_HOURS * 60)
 RETRY_WAIT_SECONDS: int = int(CONFIG.get("RETRY_WAIT_SECONDS", 300))
@@ -585,7 +593,16 @@ dsf_logger.log_msg(f"METADATA_FILE_SUFFIX               : {METADATA_FILE_SUFFIX}
 dsf_logger.log_msg(f"METADATA_FILTER_COLUMNS            : {METADATA_FILTER_COLUMNS}", level=20)
 dsf_logger.log_msg(f"METADATA_FILTER_FIELD_MAP          : {METADATA_FILTER_FIELD_MAP}", level=20)
 dsf_logger.log_msg(f"METADATA_COUNT_FIELD               : {METADATA_COUNT_FIELD}", level=20)
-dsf_logger.log_msg(f"METADATA_COUNT_TOLERANCE_PCT       : {METADATA_COUNT_TOLERANCE_PCT}%", level=20)
+if _location_tol is not None:
+    dsf_logger.log_msg(
+        f"METADATA_COUNT_TOLERANCE_PCT       : {METADATA_COUNT_TOLERANCE_PCT}%  "
+        f"(location-specific for mandator {DSF_MANDATOR})", level=20
+    )
+else:
+    dsf_logger.log_msg(
+        f"METADATA_COUNT_TOLERANCE_PCT       : {METADATA_COUNT_TOLERANCE_PCT}%  "
+        f"(default — mandator {DSF_MANDATOR} not in LOCATION_TOLERANCE_PCT)", level=20
+    )
 dsf_logger.log_msg(f"MAX_LISTEN_DURATION_HOURS          : {MAX_LISTEN_DURATION_HOURS}", level=20)
 dsf_logger.log_msg(f"RETRY_WAIT_SECONDS                 : {RETRY_WAIT_SECONDS}", level=20)
 dsf_logger.log_msg(f"STABLE_COUNT_REQUIRED_ATTEMPTS     : {STABLE_COUNT_REQUIRED_ATTEMPTS}", level=20)
@@ -673,7 +690,7 @@ dsf_logger.log_msg(f"DT_UTC: {DT_UTC.strftime(DATE_FORMAT)}", level = 20)
 dsf_logger.log_msg(f"DATA_FOLDER: {DATA_FOLDER}", level= 20)
 
 
-DATA_FILE = f"{DATA_FOLDER}{FEED_NAME}_{DT_UTC.strftime(DATE_FORMAT)}.par"
+DATA_FILE = f"{DATA_FOLDER}{FEED_NAME}.par"
 dsf_logger.log_msg(f"DATA_FILE: {DATA_FILE}", level=20)
 pathlib.Path(DATA_FOLDER).mkdir(mode=0o755, parents=True, exist_ok=True)
 APP_ID = FEED_NAME
@@ -691,7 +708,7 @@ METADATA_FILE_PATH = os.path.join(
     f"{STATUS_MESSAGES_FEED_NAME}_{ASOF_DT}{METADATA_FILE_SUFFIX}"
 )
 TEMP_DATA_FILE = DATA_FILE + ".tmp"
-GET_KAFKA_VALIDATION_LOG = os.path.join(DATA_PATH, f"{FEED_NAME}_get_kafka_validation.log")
+GET_KAFKA_VALIDATION_LOG = os.path.join(DATA_PATH, f"{FEED_NAME}_get_kafka_validation_log.txt")
 
 dsf_logger.log_msg(f"METADATA_FILE_PATH (looking here for metadata)    : {METADATA_FILE_PATH}", level=20)
 dsf_logger.log_msg(f"TEMP_DATA_FILE (intermediate write location)       : {TEMP_DATA_FILE}", level=20)
@@ -984,11 +1001,17 @@ RETRY_TS_UTC_END = datetime.timestamp(retry_deadline)
 attempt       = 0
 stable_streak = 0     # consecutive at-or-above attempts with the same filtered_count
 prev_count    = None  # filtered_count from the previous attempt
+grace_extended = False # True after one deadline extension granted near target
 
 dsf_logger.log_msg(
-    f"Retry deadline (wall clock): {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')} "
-    f"({MAX_LISTEN_DURATION_HOURS}h / {MAX_LISTEN_DURATION_MINUTES} min from now). "
-    f"Kafka window on each attempt: {DT_UTC_START} → {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}",
+    f"Kafka publication window (messages searched on topic) : "
+    f"{DT_UTC_START.strftime('%Y-%m-%d %H:%M:%S')}  →  {DT_UTC_END.strftime('%Y-%m-%d %H:%M:%S')}",
+    level=20
+)
+dsf_logger.log_msg(
+    f"Retry deadline (script stops retrying after)          : "
+    f"{retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}  "
+    f"({MAX_LISTEN_DURATION_HOURS}h / {MAX_LISTEN_DURATION_MINUTES} min from now)",
     level=20
 )
 
@@ -998,6 +1021,13 @@ try:
         dsf_logger.log_msg(
             f"--- Collection attempt {attempt} started at "
             f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---",
+            level=20
+        )
+        dsf_logger.log_msg(
+            f"Scanning Kafka window : "
+            f"{DT_UTC_START.strftime('%Y-%m-%d %H:%M:%S')}  →  "
+            f"{datetime.fromtimestamp(RETRY_TS_UTC_END).strftime('%Y-%m-%d %H:%M:%S')}  "
+            f"| Retry deadline: {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}",
             level=20
         )
 
@@ -1301,6 +1331,7 @@ try:
                 tolerance_pct=METADATA_COUNT_TOLERANCE_PCT,
                 separator=SEPERATOR,
             )
+            dsf_logger.log_msg(f"Output data file       : {DATA_FILE}", level=20)
             dsf_logger.log_msg(
                 f"Committing offsets for {len(last_offsets)} partition(s) "
                 f"after successful .par write.",
@@ -1346,6 +1377,22 @@ try:
                     level=20
                 )
             prev_count = filtered_count
+            
+            if stable_streak == 1 and not grace_extended \
+                    and time_remaining.total_seconds() < RETRY_WAIT_SECONDS:
+                retry_deadline  += timedelta(seconds=RETRY_WAIT_SECONDS)
+                RETRY_TS_UTC_END = datetime.timestamp(retry_deadline)
+                grace_extended   = True
+                time_remaining   = retry_deadline - datetime.now()
+                dsf_logger.log_msg(
+                    f"Count first reached target with less than {RETRY_WAIT_SECONDS}s remaining — "
+                    f"extending retry deadline by {RETRY_WAIT_SECONDS}s to allow stability confirmation. "
+                    f"New retry deadline : {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}. "
+                    f"Kafka scan window now : "
+                    f"{DT_UTC_START.strftime('%Y-%m-%d %H:%M:%S')}  →  "
+                    f"{datetime.fromtimestamp(RETRY_TS_UTC_END).strftime('%Y-%m-%d %H:%M:%S')}",
+                    level=30
+                )
 
             if stable_streak >= STABLE_COUNT_REQUIRED_ATTEMPTS:
                 _save_and_break(
@@ -1431,6 +1478,13 @@ try:
                         "Rerun this script to re-consume and re-validate messages.",
                         level=40
                     )
+                    write_get_kafka_validation_log(
+                        GET_KAFKA_VALIDATION_LOG, username, ASOF_DT, DSF_MANDATOR, FEED_NAME,
+                        str(filter_values.get("reconciliationGroupId", "")),
+                        EXPECTED_COUNT, filtered_count, METADATA_COUNT_TOLERANCE_PCT,
+                        SEPERATOR, "FAILED",
+                        f"COUNT_BELOW_TOLERANCE: expected={EXPECTED_COUNT} actual={filtered_count} tolerance_lower={int(low)}",
+                    )
                     os._exit(1)
 
             else:
@@ -1470,6 +1524,12 @@ except Exception as _loop_err:
 # if DATA_CONSUME is set we know we have consumed at least one message
 if(DATA_CONSUME != "Yes" and ALLOW_NO_DATA == "No"):
     dsf_logger.log_msg(f"No data consumed from any partition!!!", level=40)
+    write_get_kafka_validation_log(
+        GET_KAFKA_VALIDATION_LOG, username, ASOF_DT, DSF_MANDATOR, FEED_NAME,
+        str(filter_values.get("reconciliationGroupId", "")),
+        EXPECTED_COUNT, 0, METADATA_COUNT_TOLERANCE_PCT,
+        SEPERATOR, "FAILED", "NO_DATA_CONSUMED",
+    )
     os._exit(1)
 
 # redundant for clarity
@@ -1480,7 +1540,7 @@ elif (DATA_CONSUME != "Yes" and ALLOW_NO_DATA == "Yes"):
 
 # Do with restart file if exists
 if(restart == "YES"):
-    merged_files = subprocess.run([f"/usr/bin/cat {FIRST_DATA_FILE} {DATA_FILE}_ASI"], shell=True)
+    merged_files = subprocess.run([f"/usr/bin/cat {FIRST_DATA_FILE} {DATA_FILE} > {DATA_FILE}_ASI"], shell=True)
     if merged_files.returncode !=0:
         dsf_logger.log_msg("Error merging RESTART file into ASI file", level=40)
         os._exit(9)
@@ -1492,5 +1552,5 @@ if(restart == "YES"):
         dsf_logger.log_msg("Error with move of merged file", level=40)
         os._exit(9)
 
-
+dsf_logger.log_msg(f"Exiting (code 0): data successfully consumed and written to {DATA_FILE}", level=20)
 os._exit(0)

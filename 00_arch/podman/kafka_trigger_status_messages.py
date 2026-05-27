@@ -479,6 +479,53 @@ def write_validation_metadata(meta_file, log_file, mandator, producer_name, feed
             f.write(header_row + "\n")
         f.write(data_row + "\n")
     dsf_logger.log_msg(f"Validation log appended: {log_file}", level=20)
+    
+
+def write_failure_log_entry(log_file, mandator, producer_name, feed_name,
+                             reason, max_run_id, missing_instances_list,
+                             validated_df, separator, username='unknown'):
+    """Append one FAILED row to the validation log."""
+    if validated_df is not None and not validated_df.empty:
+        expected_instances = (
+            str(int(validated_df['status.totalInstances'].max()))
+            if 'status.totalInstances' in validated_df.columns else ""
+        )
+        found_count = (
+            str(len(set(validated_df['status.instanceIndex'].unique())))
+            if 'status.instanceIndex' in validated_df.columns else ""
+        )
+        business_date = (
+            str(validated_df['status.businessDate'].iloc[0])
+            if 'status.businessDate' in validated_df.columns else ASOF_DT
+        )
+    else:
+        expected_instances = ""
+        found_count = "0"
+        business_date = ASOF_DT
+
+    fields = {
+        "export_datetime":          datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+        "username":                 username,
+        "business_date":            business_date,
+        "mandator":                 mandator,
+        "producer_name":            producer_name,
+        "feed_name":                feed_name,
+        "reconciliation_group_id":  str(max_run_id) if max_run_id is not None else "",
+        "instances_counted":        found_count,
+        "total_expected_instances": expected_instances,
+        "total_messages_published": "",
+        "status":                   "FAILED",
+        "failure_reason":           reason,
+        "missing_indices":          ",".join(str(i) for i in missing_instances_list),
+    }
+    header_row   = separator.join(fields.keys())
+    data_row     = separator.join(fields.values())
+    write_header = not os.path.exists(log_file)
+    with open(log_file, 'a', encoding='UTF-8') as f:
+        if write_header:
+            f.write(header_row + "\n")
+        f.write(data_row + "\n")
+    dsf_logger.log_msg(f"Failure log entry appended: {log_file}", level=40)
 
 
 def log_topic_match_report(messages_list, mandator, producer_filter, target_date, topic):
@@ -1175,6 +1222,12 @@ if not is_valid:
     if ALLOW_NO_DATA != "YES":
         log_topic_match_report(collected_messages, DSF_MANDATOR, PRODUCER_FILTER, ASOF_DT, INFLOW_TOPIC)
         dsf_logger.log_msg(f"Exiting (code 1): validation failed and ALLOW_NO_DATA is not YES — no retry will be attempted", level=40)
+        write_failure_log_entry(
+            VALIDATION_LOG_FILE, DSF_MANDATOR, PRODUCER_FILTER, FEED_NAME,
+            "INSTANCE_VALIDATION_FAILED_NO_RETRY", max_run_id,
+            missing_instances if missing_instances else [],
+            validated_df, SEPERATOR, username
+        )
         os._exit(1)
     dsf_logger.log_msg(f"ALLOW_NO_DATA is set to YES, will enter wait-and-listen mode", level=20)
 
@@ -1953,7 +2006,13 @@ if not is_valid and ALLOW_NO_DATA == "YES":
         _report_msgs = retry_collected_messages if retry_collected_messages else collected_messages
         log_topic_match_report(_report_msgs, DSF_MANDATOR, PRODUCER_FILTER, ASOF_DT, INFLOW_TOPIC)
         dsf_logger.log_msg(f"Exiting with error due to validation failure", level=40)
-
+        write_failure_log_entry(
+            VALIDATION_LOG_FILE, DSF_MANDATOR, PRODUCER_FILTER, FEED_NAME,
+            "RETRY_EXHAUSTED_VALIDATION_FAILED", max_run_id,
+            missing_instances if 'missing_instances' in locals() and missing_instances else [],
+            validated_df if 'validated_df' in locals() else None,
+            SEPERATOR, username
+        )
         os._exit(1)
                         
                         

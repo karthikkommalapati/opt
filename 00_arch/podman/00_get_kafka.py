@@ -1,13 +1,13 @@
 
 
-verbose=0
+verbose=1
 
 import os
 
 import dsf_logging
 
 logging_level = 20
-verbose_log=False
+verbose_log=True
 SDA, FEED_NAME = os.environ["SDA"].upper(), "CPSB4QST"
 ASOF_DT, PARENT_PID, AUDIT_ID = os.environ[f"{SDA}_ASOF_DT"], os.environ["PARENT_PID"], os.environ["AUDIT_ID"]
 get_kafka_log_path = os.environ["LOG_PROC_PATH"]
@@ -993,13 +993,19 @@ if (INPUT_FORMAT == "AVRO" and DECIMAL_CONV == "YES"):
 retry_deadline   = datetime.now() + timedelta(hours=MAX_LISTEN_DURATION_HOURS)
 RETRY_TS_UTC_END = datetime.timestamp(retry_deadline)
 attempt       = 0
-stable_streak = 0     # consecutive at-or-above attempts with the same filtered_count
-prev_count    = None  # filtered_count from the previous attempt
+stable_streak  = 0     # consecutive at-or-above attempts with the same filtered_count
+prev_count     = None  # filtered_count from the previous attempt
+grace_extended = False # True after one deadline extension granted near target
 
 dsf_logger.log_msg(
-    f"Retry deadline (wall clock): {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')} "
-    f"({MAX_LISTEN_DURATION_HOURS}h / {MAX_LISTEN_DURATION_MINUTES} min from now). "
-    f"Kafka window on each attempt: {DT_UTC_START} → {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}",
+    f"Kafka publication window (messages searched on topic) : "
+    f"{DT_UTC_START.strftime('%Y-%m-%d %H:%M:%S')}  →  {DT_UTC_END.strftime('%Y-%m-%d %H:%M:%S')}",
+    level=20
+)
+dsf_logger.log_msg(
+    f"Retry deadline (script stops retrying after)          : "
+    f"{retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}  "
+    f"({MAX_LISTEN_DURATION_HOURS}h / {MAX_LISTEN_DURATION_MINUTES} min from now)",
     level=20
 )
 
@@ -1009,6 +1015,13 @@ try:
         dsf_logger.log_msg(
             f"--- Collection attempt {attempt} started at "
             f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---",
+            level=20
+        )
+        dsf_logger.log_msg(
+            f"Scanning Kafka window : "
+            f"{DT_UTC_START.strftime('%Y-%m-%d %H:%M:%S')}  →  "
+            f"{datetime.fromtimestamp(RETRY_TS_UTC_END).strftime('%Y-%m-%d %H:%M:%S')}  "
+            f"| Retry deadline: {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}",
             level=20
         )
 
@@ -1359,6 +1372,22 @@ try:
                 )
             prev_count = filtered_count
 
+            if stable_streak == 1 and not grace_extended \
+                    and time_remaining.total_seconds() < RETRY_WAIT_SECONDS:
+                retry_deadline  += timedelta(seconds=RETRY_WAIT_SECONDS)
+                RETRY_TS_UTC_END = datetime.timestamp(retry_deadline)
+                grace_extended   = True
+                time_remaining   = retry_deadline - datetime.now()
+                dsf_logger.log_msg(
+                    f"Count first reached target with less than {RETRY_WAIT_SECONDS}s remaining — "
+                    f"extending retry deadline by {RETRY_WAIT_SECONDS}s to allow stability confirmation. "
+                    f"New retry deadline : {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}. "
+                    f"Kafka scan window now : "
+                    f"{DT_UTC_START.strftime('%Y-%m-%d %H:%M:%S')}  →  "
+                    f"{datetime.fromtimestamp(RETRY_TS_UTC_END).strftime('%Y-%m-%d %H:%M:%S')}",
+                    level=30
+                )
+
             if stable_streak >= STABLE_COUNT_REQUIRED_ATTEMPTS:
                 _save_and_break(
                     f"Count stable at {filtered_count} for {stable_streak} consecutive "
@@ -1505,7 +1534,7 @@ elif (DATA_CONSUME != "Yes" and ALLOW_NO_DATA == "Yes"):
 
 # Do with restart file if exists
 if(restart == "YES"):
-    merged_files = subprocess.run([f"/usr/bin/cat {FIRST_DATA_FILE} {DATA_FILE}_ASI"], shell=True)
+    merged_files = subprocess.run([f"/usr/bin/cat {FIRST_DATA_FILE} {DATA_FILE} > {DATA_FILE}_ASI"], shell=True)
     if merged_files.returncode !=0:
         dsf_logger.log_msg("Error merging RESTART file into ASI file", level=40)
         os._exit(9)
