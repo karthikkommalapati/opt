@@ -850,98 +850,493 @@ bash run_local.sh 2026-04-22 022
 
 ## 12. Scenarios — Business Data Pipeline
 
-All scenarios use `business-topic` and `run_get_kafka_local.sh`. The time window for `ASOF_DT=2026-04-22` is `2026-04-22T16:00:00` → `2026-04-23T16:00:00` (24-hour window). All `std_enqueueTime` values must fall in this range.
+All scenarios use `business-topic` and `run_get_kafka_local.sh`. The time window for `ASOF_DT=2026-04-22` (mandator 022) is `2026-04-22 16:00:00 UTC → 2026-04-23 16:00:00 UTC`. All `std_enqueueTime` values must fall in this range unless the scenario is specifically testing out-of-window behaviour.
+
+**Default config values** (from `get_kafka_config.json`) that affect these scenarios:
+
+| Setting | Value | Meaning |
+|---|---|---|
+| `MAX_LISTEN_DURATION_HOURS` | `0.05` (~3 min) | How long the retry loop runs before giving up |
+| `RETRY_WAIT_SECONDS` | `5` | Seconds between retry attempts |
+| `STABLE_COUNT_REQUIRED_ATTEMPTS` | `2` | Consecutive equal counts required before accepting |
+| `METADATA_COUNT_TOLERANCE_PCT` | `10` | Acceptable under-count percentage (floor = expected − 10%) |
+
+When a scenario says **"edit `get_kafka_config.json`"**, restore the original value immediately after the test.
 
 ---
 
-### Scenario — Normal run (all records inside window)
+### Setting up the metadata file
 
+Every scenario requires a metadata file that is normally written by the status messages pipeline. To test without running that pipeline first, create it manually. Replace the last field (`3`) with whatever `total_messages_published` the scenario needs.
+
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|3
+EOF
+```
+
+This tells the business data pipeline to expect **3 records** from Kafka.
+
+---
+
+### Scenario A — Normal run (count met, stability confirmed)
+
+**What it tests**: Full happy path. Metadata exists, records are in the topic within the time window, the filtered count reaches `total_messages_published`, and the count is stable for `STABLE_COUNT_REQUIRED_ATTEMPTS` (2) consecutive reads before the output is written.
+
+The script never accepts on the first match — it always sleeps `RETRY_WAIT_SECONDS` and re-reads to confirm the count has not changed. With the default `STABLE_COUNT_REQUIRED_ATTEMPTS=2` you will always see at least 2 collection attempts in the log before the script exits.
+
+**Step 1 — Create metadata file** (expecting 3 records):
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|3
+EOF
+```
+
+**Step 2 — Reset topic and produce 3 records**:
 ```bash
 podman exec redpanda rpk topic delete business-topic
 podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
 python3 produce_get_kafka_messages.py
+```
+
+`input/business_data.jsonl` must have exactly 3 records with `std_enqueueTime` inside `2026-04-22T16:00:00+00:00` → `2026-04-23T16:00:00+00:00`.
+
+**Step 3 — Run**:
+```bash
 bash run_get_kafka_local.sh 2026-04-22 022
 ```
 
-**Expected**:
+**Expected log sequence**:
 ```
-output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par  ← one JSON line per record
+Count changed: None → 3 (>= expected 3). Stability streak reset to 1/2.   ← attempt 1: streak not met, sleeps 5s
+Count stable at 3 for 2/2 consecutive attempt(s).                         ← attempt 2: streak met, accepts
+Temp file promoted: ...CPSB4QST.par.tmp → ...CPSB4QST.par
+Exiting (code 0): data successfully consumed and written to ...CPSB4QST.par
 ```
 
-Log confirms:
+**Expected output files**:
 ```
-DT_UTC_START: 2026-04-22 16:00:00
-DT_UTC_END:   2026-04-23 16:00:00
+output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par           ← 3 JSON lines
+output/get_kafka/CPSB4QST_get_kafka_validation_log.txt       ← one SUCCESS row appended
+```
+
+---
+
+### Scenario B — Metadata file missing
+
+**What it tests**: `00_get_kafka.py` hard-exits immediately (before connecting to Kafka) if the metadata file does not exist. The business data pipeline cannot run until the status messages pipeline has completed successfully.
+
+**Step 1 — Remove the metadata file if it exists**:
+```bash
+rm -f output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt
+```
+
+**Step 2 — Run**:
+```bash
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected**: Script exits 1 immediately. No Kafka connection is attempted. No output file.
+
+**Expected log**:
+```
+METADATA FILE NOT FOUND: .../CPSB4Q00_2026-04-22_metadata.txt
+The trigger-based status-messages script must complete successfully before this script runs.
+Cannot continue without the metadata file.
+```
+
+---
+
+### Scenario C — Metadata file malformed
+
+**What it tests**: Three distinct structural errors the script detects and refuses before doing any work. Each causes an immediate exit 1 with a descriptive message.
+
+Before each sub-case, reset the topic so Kafka state does not interfere:
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+```
+
+---
+
+**C1 — Header only (no data row)**
+
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+printf 'export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published\n' \
+  > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected log**: `Metadata file ... has 1 non-blank line(s) — expected exactly 2 (header row + 1 data row). File may be incomplete or empty.`
+
+---
+
+**C2 — Multiple data rows** (can happen if the status messages script appended instead of replacing)
+
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|3
+2026-04-22T23:59:30|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|5
+EOF
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected log**: `Metadata file ... has 3 non-blank lines — expected exactly 2 ... Multiple data rows are not permitted ... Remove the extra rows and rerun.`
+
+---
+
+**C3 — Column count mismatch** (header has 10 fields, data row has 9)
+
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2
+EOF
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected log**: `Metadata file ... header count (10) does not match value count (9).`
+
+---
+
+### Scenario D — Under-count, messages arrive during retry → eventual success
+
+**What it tests**: Script starts with fewer records than the metadata expects and enters the retry loop. The missing records are produced while it is waiting. The next attempt finds the full count and the script accepts.
+
+**Step 1 — Create metadata file** (expecting 5 records):
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|5
+EOF
+```
+
+**Step 2 — Create `input/partial_3.jsonl`** (3 of the 5 expected records):
+```json
+{"std_enqueueTime": "2026-04-22T17:00:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-001", "productType": "EQUITY", "quantity": 100.0, "currency": "USD", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+{"std_enqueueTime": "2026-04-22T17:01:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-002", "productType": "BOND", "quantity": 200.0, "currency": "EUR", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+{"std_enqueueTime": "2026-04-22T17:02:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-003", "productType": "FX", "quantity": 300.0, "currency": "CHF", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+```
+
+**Step 3 — Create `input/late_2.jsonl`** (the 2 records that arrive after the script starts):
+```json
+{"std_enqueueTime": "2026-04-22T17:10:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-004", "productType": "EQUITY", "quantity": 400.0, "currency": "USD", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+{"std_enqueueTime": "2026-04-22T17:11:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-005", "productType": "BOND", "quantity": 500.0, "currency": "GBP", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+```
+
+**Step 4 — Reset topic and produce the partial set**:
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py --file input/partial_3.jsonl
+```
+
+**Step 5 — Two terminals**:
+```bash
+# Terminal 1 — start the script (finds 3 of 5, enters retry loop)
+bash run_get_kafka_local.sh 2026-04-22 022
+# Watch for: "Under-count on attempt 1: got 3, expected 5 ... Sleeping 5s."
+
+# Terminal 2 — produce the 2 late records during the 5-second sleep window
+python3 produce_get_kafka_messages.py --file input/late_2.jsonl
+```
+
+**Expected log sequence in Terminal 1**:
+```
+Under-count on attempt 1: got 3, expected 5 ... Sleeping 5s.              ← attempt 1: under
+Count changed: None → 5 (>= expected 5). Stability streak reset to 1/2.  ← attempt 2: at target
+Count stable at 5 for 2/2 consecutive attempt(s).                         ← attempt 3: stable, accepts
 Exiting (code 0): data successfully consumed and written to ...CPSB4QST.par
 ```
 
 ---
 
-### Scenario — Records outside the time window
+### Scenario E — Count permanently below tolerance floor (hard failure)
 
-**Step 1 — Create `input/business_outside_window.jsonl`** with `std_enqueueTime` before `2026-04-22T16:00:00`:
+**What it tests**: The topic has far fewer records than expected and none are ever added. The script exhausts its retry window and exits 1. No output file is written. A FAILED row is appended to the validation log.
+
+With `METADATA_COUNT_TOLERANCE_PCT=10` and `total_messages_published=10`, the acceptable floor is **9** (10 − 10%). Producing 5 records puts the count well below that floor.
+
+**Step 1 — Shorten the timeout** in `get_kafka_config.json` (restore after testing):
 ```json
-{"std_enqueueTime": "2026-04-22T10:00:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-999", "productType": "EQUITY", "quantity": 100.0, "currency": "USD", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+"MAX_LISTEN_DURATION_HOURS": "0.01",
+"RETRY_WAIT_SECONDS": "5"
 ```
 
-**Step 2 — Reset topic and produce:**
+**Step 2 — Create metadata file** (expecting 10 records):
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|10
+EOF
+```
+
+**Step 3 — Create `input/five_records.jsonl`** with 5 records (all with `std_enqueueTime` inside the window), then reset and produce:
 ```bash
 podman exec redpanda rpk topic delete business-topic
 podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
-python3 produce_get_kafka_messages.py --file input/business_outside_window.jsonl
+python3 produce_get_kafka_messages.py --file input/five_records.jsonl
+```
+
+**Step 4 — Run (do not produce more records)**:
+```bash
 bash run_get_kafka_local.sh 2026-04-22 022
 ```
 
-**Expected**: Script finds 0 records in the 16:00–16:00 window → retry loop → exits after timeout. No output file.
+**Expected log sequence**:
+```
+COUNT VALIDATION REPORT
+  Expected count (metadata): 10
+  Actual filtered count    : 5
+  Result: BELOW TOLERANCE — got 5 of 10 expected (5 short, 50.0% below). Floor is 9. Will retry.
+...
+[repeats every 5 seconds until MAX_LISTEN_DURATION_HOURS expires]
+...
+Retry window exhausted after N attempt(s). Final count 5 is BELOW lower tolerance threshold 9 ...  Failing.
+FAILURE ANALYSIS — FILTER / COUNT MISMATCH DETAIL
+```
+
+**Expected outcome**: Exit code 1. No `CPSB4QST.par`. One FAILED row appended to `output/get_kafka/CPSB4QST_get_kafka_validation_log.txt` with `failure_reason=COUNT_BELOW_TOLERANCE`.
+
+**Restore config**:
+```json
+"MAX_LISTEN_DURATION_HOURS": "0.05",
+"RETRY_WAIT_SECONDS": "5"
+```
 
 ---
 
-### Scenario — Empty topic
+### Scenario F — Count within lower tolerance at exhaustion (accepted with warning)
 
+**What it tests**: The topic has slightly fewer records than expected — within the ±10% tolerance floor. The script retries until the deadline, then accepts the under-count with a WARNING-level log and writes the output file anyway.
+
+With `total_messages_published=10` and `METADATA_COUNT_TOLERANCE_PCT=10`, the floor is **9**. Producing 9 records means count (9) < expected (10) so the script keeps retrying. At exhaustion: `9 >= floor(9)` → accepts.
+
+**Step 1 — Shorten the timeout** in `get_kafka_config.json` (restore after testing):
+```json
+"MAX_LISTEN_DURATION_HOURS": "0.01",
+"RETRY_WAIT_SECONDS": "5"
+```
+
+**Step 2 — Create metadata file** (expecting 10 records):
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|10
+EOF
+```
+
+**Step 3 — Create `input/nine_records.jsonl`** with exactly 9 records inside the window, then reset and produce:
 ```bash
 podman exec redpanda rpk topic delete business-topic
 podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py --file input/nine_records.jsonl
+```
+
+**Step 4 — Run (do not produce the 10th record)**:
+```bash
 bash run_get_kafka_local.sh 2026-04-22 022
 ```
 
-**Expected**: Script finds 0 records → retries every `RETRY_WAIT_SECONDS` → exits cleanly after timeout.
+**Expected log sequence**:
+```
+Result: BELOW EXPECTED — got 9 of 10 expected (1 short, 10.0% below). Within ±10% tolerance. Will retry.
+...
+[retries until deadline]
+...
+Retry window exhausted after N attempt(s). Final count 9 is within lower tolerance (9–10, ±10%). Accepting.
+Temp file promoted: ...CPSB4QST.par.tmp → ...CPSB4QST.par
+Exiting (code 0): data successfully consumed and written to ...CPSB4QST.par
+```
+
+**Expected outcome**: Exit code 0. `CPSB4QST.par` written with 9 records. One SUCCESS row in the validation log with `actual_count=9`, `expected_count=10`.
+
+**Restore config**:
+```json
+"MAX_LISTEN_DURATION_HOURS": "0.05",
+"RETRY_WAIT_SECONDS": "5"
+```
 
 ---
 
-### Scenario — Duplicate records in topic
+### Scenario G — Stability confirmation (STABLE_COUNT_REQUIRED_ATTEMPTS)
 
-If the script reports `VALIDATION FAILED: Duplicate instanceIds found` it usually means `produce_messages.py` was run more than once without wiping the topic first.
+**What it tests**: When the count first meets or exceeds the expected value, the script does not accept immediately — it requires `STABLE_COUNT_REQUIRED_ATTEMPTS` consecutive reads with the same count. Increase that setting to 3 to see the streak working through the logs.
 
-**Diagnose — count messages per instanceIndex:**
-```bash
-python3 -c "
-import io, json, requests
-import fastavro
-from kafka import KafkaConsumer
-from collections import Counter
-
-schema = fastavro.parse_schema(json.loads(
-    requests.get('http://localhost:8081/subjects/inflow-topic-value/versions/latest').json()['schema']
-))
-consumer = KafkaConsumer('inflow-topic', bootstrap_servers='localhost:9092',
-    auto_offset_reset='earliest', consumer_timeout_ms=3000)
-counts = Counter(
-    fastavro.schemaless_reader(io.BytesIO(m.value[5:]), schema)['status']['instanceIndex']
-    for m in consumer
-)
-consumer.close()
-for idx, count in sorted(counts.items()):
-    flag = ' <-- DUPLICATE' if count > 1 else ''
-    print(f'  instanceIndex={idx}  count={count}{flag}')
-"
+**Step 1 — Temporarily increase stability requirement** in `get_kafka_config.json`:
+```json
+"STABLE_COUNT_REQUIRED_ATTEMPTS": "3"
 ```
 
-**Fix — wipe topic and re-produce once:**
+**Step 2 — Create metadata file** (expecting 3 records):
 ```bash
-podman exec redpanda rpk topic delete inflow-topic
-podman exec redpanda rpk topic create inflow-topic --partitions 1 --replicas 1
-python3 produce_messages.py
-bash run_local.sh 2026-04-22 022
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|3
+EOF
+```
+
+**Step 3 — Reset topic and produce 3 records**:
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py
+```
+
+**Step 4 — Run**:
+```bash
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected log sequence** — three attempts before accepting:
+```
+Count changed: None → 3 (>= expected 3). Stability streak reset to 1/3.  ← attempt 1: streak 1, sleeps
+Count stable at 3 for 2/3 consecutive attempt(s).                         ← attempt 2: streak 2, sleeps
+Count stable at 3 for 3/3 consecutive attempt(s).                         ← attempt 3: streak met, accepts
+Temp file promoted: ...CPSB4QST.par.tmp → ...CPSB4QST.par
+Exiting (code 0): data successfully consumed and written to ...CPSB4QST.par
+```
+
+**Restore config**:
+```json
+"STABLE_COUNT_REQUIRED_ATTEMPTS": "2"
+```
+
+---
+
+### Scenario H — Records outside the time window
+
+**What it tests**: Records are in the topic but have `std_enqueueTime` outside `2026-04-22 16:00:00 → 2026-04-23 16:00:00`. The script finds 0 matching records, retries until the deadline, and exits 1 (count 0 is below the tolerance floor for any non-zero expected count).
+
+**Step 1 — Create metadata file** (expecting 3 records):
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|3
+EOF
+```
+
+**Step 2 — Create `input/outside_window.jsonl`** with `std_enqueueTime` **before** `2026-04-22T16:00:00+00:00`:
+```json
+{"std_enqueueTime": "2026-04-22T10:00:00+00:00", "std_legalEntity": "UBS_AG", "accountId": "ACC-001", "productType": "EQUITY", "quantity": 100.0, "currency": "USD", "tradeDate": "2026-04-22", "settlementDate": "2026-04-24", "mandatorCode": "022"}
+```
+
+**Step 3 — Reset topic and produce**:
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py --file input/outside_window.jsonl
+```
+
+Confirm the message is in the topic but the script cannot reach it:
+```bash
+podman exec redpanda rpk topic describe business-topic -p
+# HIGH-WATERMARK = 1 — message is there
+```
+
+**Step 4 — Run**:
+```bash
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected**: `No data on the Kafka Topic for partition 0` on every attempt → retry loop exhausts → `BELOW lower tolerance threshold` → exit 1. No `CPSB4QST.par`.
+
+---
+
+### Scenario I — Empty topic
+
+**What it tests**: Script runs against a topic with zero messages. No records are found on any attempt. Retry loop exhausts and script exits 1.
+
+**Step 1 — Create metadata file** (expecting 3 records):
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|3
+EOF
+```
+
+**Step 2 — Ensure topic is empty**:
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+```
+
+**Step 3 — Run (do not produce any messages)**:
+```bash
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected**: `No data on the Kafka Topic for partition 0` on every attempt → retry loop exhausts after `MAX_LISTEN_DURATION_HOURS` → exit 1. No output file.
+
+---
+
+### Scenario J — Re-run for same ASOF_DT (restart merge)
+
+**What it tests**: Running the script a second time for the same date when an output file already exists. The existing `.par` file is backed up as `.par.1`, the second run collects fresh data from Kafka, and at the end both files are merged into the final `.par`. The `.par.1` backup is deleted. **Output grows with each re-run** — the same Kafka records are re-read every time because the script always seeks to `start_offset`.
+
+**Step 1 — Run once to create the initial output**:
+
+Create metadata (expecting 2 records):
+```bash
+mkdir -p output/get_kafka/CPSB4Q00_2026-04-22
+cat > output/get_kafka/CPSB4Q00_2026-04-22/CPSB4Q00_2026-04-22_metadata.txt << 'EOF'
+export_datetime|username|business_date|mandator|producer_name|feed_name|reconciliation_group_id|instances_counted|total_expected_instances|total_messages_published
+2026-04-22T23:59:00|testuser|2026-04-22|022|CLIENT_STRUCTURES|CPSB4Q00|1|2|2|2
+EOF
+```
+
+Produce 2 records and run:
+```bash
+podman exec redpanda rpk topic delete business-topic
+podman exec redpanda rpk topic create business-topic --partitions 1 --replicas 1
+python3 produce_get_kafka_messages.py
+bash run_get_kafka_local.sh 2026-04-22 022
+wc -l output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par
+# → 2
+```
+
+**Step 2 — Run a second time without wiping anything**:
+```bash
+bash run_get_kafka_local.sh 2026-04-22 022
+```
+
+**Expected log on second run**:
+```
+First run for this date detected, data in ...CPSB4QST.par.1   ← existing .par backed up
+...
+[reads same 2 records from Kafka — seek always goes to start_offset]
+...
+Temp file promoted: ...CPSB4QST.par.tmp → ...CPSB4QST.par
+[restart merge] cat .par.1 + .par → .par_ASI → mv to .par → rm .par.1
+Exiting (code 0): ...
+```
+
+**Check the merged result**:
+```bash
+wc -l output/get_kafka/CPSB4QST_2026-04-22/CPSB4QST.par
+# → 4  (2 from run 1 + 2 from run 2 — same records, duplicated)
+
+ls output/get_kafka/CPSB4QST_2026-04-22/
+# CPSB4QST.par only — .par.1 was deleted after the merge
+```
+
+**To avoid accumulation**, remove the output folder before a clean re-run:
+```bash
+rm -rf output/get_kafka/CPSB4QST_2026-04-22/
 ```
 
 ---
