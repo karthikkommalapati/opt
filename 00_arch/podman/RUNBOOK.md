@@ -974,6 +974,77 @@ Quick reference for all commands. Use this for diagnosis — no need to scroll t
 | `podman exec redpanda rpk topic consume <topic> --num 10` | Read the last 10 messages (raw bytes for Avro-encoded topics) |
 | `podman exec redpanda rpk topic consume <topic> --offset start` | Read all messages from the beginning |
 
+> `rpk topic consume` shows raw Avro bytes — use the snippets below to read actual field values.
+
+### Inspect message content (readable format)
+
+**Status messages — `inflow-topic`**
+
+Prints one line per message showing the key fields:
+
+```bash
+python3 -c "
+import io, json, requests, fastavro
+from kafka import KafkaConsumer
+
+schema = fastavro.parse_schema(json.loads(
+    requests.get('http://localhost:8081/subjects/inflow-topic-value/versions/latest').json()['schema']
+))
+consumer = KafkaConsumer('inflow-topic', bootstrap_servers='localhost:9092',
+    auto_offset_reset='earliest', consumer_timeout_ms=3000)
+count = 0
+for m in consumer:
+    rec = fastavro.schemaless_reader(io.BytesIO(m.value[5:]), schema)
+    s = rec.get('status', {})
+    print(f\"[{count}] mandator={s.get('mandatorCode')}  date={s.get('businessDate')}  \"
+          f\"runId={s.get('reconciliationGroupId')}  instance={s.get('instanceIndex')}/{s.get('totalInstances')}  \"
+          f\"producer={rec.get('producer')}  msgs={s.get('numberOfMessagesPublished')}\")
+    count += 1
+consumer.close()
+print(f'--- {count} message(s) in inflow-topic ---')
+"
+```
+
+Example output:
+```
+[0] mandator=022  date=2026-05-25  runId=1  instance=0/2  producer=CLIENT_STRUCTURES  msgs=500
+[1] mandator=022  date=2026-05-25  runId=1  instance=1/2  producer=CLIENT_STRUCTURES  msgs=600
+--- 2 message(s) in inflow-topic ---
+```
+
+**Business data — `business-topic`**
+
+Prints one line per record showing the key fields:
+
+```bash
+python3 -c "
+import io, json, requests, fastavro
+from kafka import KafkaConsumer
+
+schema = fastavro.parse_schema(json.loads(
+    requests.get('http://localhost:8081/subjects/business-topic-value/versions/latest').json()['schema']
+))
+consumer = KafkaConsumer('business-topic', bootstrap_servers='localhost:9092',
+    auto_offset_reset='earliest', consumer_timeout_ms=3000)
+count = 0
+for m in consumer:
+    rec = fastavro.schemaless_reader(io.BytesIO(m.value[5:]), schema)
+    print(f\"[{count}] mandator={rec.get('mandatorCode')}  tradeDate={rec.get('tradeDate')}  \"
+          f\"account={rec.get('accountId')}  product={rec.get('productType')}  \"
+          f\"qty={rec.get('quantity')}  ccy={rec.get('currency')}\")
+    count += 1
+consumer.close()
+print(f'--- {count} record(s) in business-topic ---')
+"
+```
+
+Example output:
+```
+[0] mandator=022  tradeDate=2026-04-22  account=ACC-001  product=EQUITY  qty=1000.0  ccy=USD
+[1] mandator=022  tradeDate=2026-04-22  account=ACC-002  product=BOND    qty=500.0   ccy=EUR
+--- 2 record(s) in business-topic ---
+```
+
 ### Topic management
 
 | Command | What it does |
