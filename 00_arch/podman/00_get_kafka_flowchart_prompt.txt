@@ -1,0 +1,73 @@
+Generate a Mermaid flowchart for the 00_get_kafka.py script that I can paste into draw.io's Mermaid editor (Extras → Edit Diagram → select Mermaid).
+
+Use `flowchart TD` layout.
+
+Rules:
+- Plain business language for all node labels — no variable names, no code syntax
+- One line per node label
+- Use these Mermaid shape types:
+  - ([text]) for Start and Exit nodes
+  - [text] for process steps
+  - {text} for decisions
+- Apply inline styles using classDef for colour coding:
+  - classDef start fill:#d0d0d0,stroke:#888
+  - classDef process fill:#ffffff,stroke:#333
+  - classDef decision fill:#fff9c4,stroke:#f0c040
+  - classDef accept fill:#cce5ff,stroke:#3399ff
+  - classDef success fill:#d4edda,stroke:#28a745,color:#155724
+  - classDef warning fill:#fff3cd,stroke:#ffc107,color:#856404
+  - classDef failure fill:#f8d7da,stroke:#dc3545,color:#721c24
+
+Flow to generate:
+
+START([Start]):::start
+--> LOAD_CFG[Load job settings — which Kafka topic to read, which feed to process, and how long to wait for data]:::process
+--> LOAD_META[Read the expected record count from the feed metadata file]:::process
+--> META_VALID{Was the metadata file found and loaded successfully?}:::decision
+
+META_VALID -- No --> META_ERR[Log error — metadata file missing or unreadable]:::process --> EXIT_META([Exit — Failed: could not read the expected record count]):::failure
+META_VALID -- Yes --> CONNECT[Connect to Kafka and work out which messages belong to today's delivery window]:::process
+--> ATTEMPT[Start a new read attempt]:::process
+--> READ[Read all messages published to Kafka within today's expected delivery window]:::process
+--> FILTER[Keep only messages that belong to this feed, client, and business date]:::process
+--> WRITE_TMP[Save the matching records to a temporary working file]:::process
+--> COUNT_CHECK{Have we received at least as many records as expected?}:::decision
+
+COUNT_CHECK -- Yes --> STREAK[Track consecutive reads with the same record count — count unchanged: add 1 to streak — count changed: restart streak at 1]:::process
+--> STREAK_MET{Has the record count been the same on two checks in a row?}:::decision
+
+STREAK_MET -- Yes --> ACCEPT1[Rename working file to the final output file]:::accept
+--> LOG1[Write success entry to the validation log]:::accept
+--> COMMIT1[Save our reading position in Kafka so we do not re-read these messages]:::accept
+--> EXIT_OK([Exit — Success: all expected records received and confirmed stable]):::success
+
+STREAK_MET -- No --> GRACE_CHECK{Have we just hit the expected count for the first time with almost no time left for a second check?}:::decision
+GRACE_CHECK -- Yes --> EXTEND[Add one extra wait period so there is time to do a second confirmation check]:::process
+--> WIN_EXH1{Has the maximum wait time been reached?}:::decision
+GRACE_CHECK -- No --> WIN_EXH1
+
+WIN_EXH1 -- Yes --> ACCEPT2[Rename working file to the final output file]:::accept
+--> LOG2[Write acceptance entry to the validation log]:::accept
+--> COMMIT2[Save our reading position in Kafka]:::accept
+--> EXIT_UNSTABLE([Exit — Accepted with caution: record count hit target but a second confirmation check was not possible]):::warning
+WIN_EXH1 -- No --> DEL1[Discard the temporary working file]:::process
+--> SLEEP1[Wait before reading Kafka again]:::process
+--> ATTEMPT
+
+COUNT_CHECK -- No --> RESET[Reset the count check — record count is still below target]:::process
+--> WIN_EXH2{Has the maximum wait time been reached?}:::decision
+WIN_EXH2 -- No --> DEL2[Discard the temporary working file]:::process
+--> SLEEP2[Wait before reading Kafka again]:::process
+--> ATTEMPT
+WIN_EXH2 -- Yes --> FLOOR_CHECK{Is the record count still within the acceptable shortfall tolerance?}:::decision
+FLOOR_CHECK -- Yes --> ACCEPT3[Rename working file to the final output file]:::accept
+--> LOG3[Write warning entry to the validation log — fewer records than expected but within tolerance]:::accept
+--> COMMIT3[Save our reading position in Kafka]:::accept
+--> EXIT_WARN([Exit — Accepted with Warning: fewer records than expected but within the acceptable range]):::warning
+FLOOR_CHECK -- No --> DEL3[Discard the temporary working file]:::process
+--> FAIL_LOG[Write a detailed failure report — what records were found versus what was expected]:::process
+--> EXIT_FAIL([Exit — Failed: too few records received — below the acceptable minimum]):::failure
+
+Output only the raw Mermaid code block — nothing else.
+
+Paste this into Copilot, copy the Mermaid code it returns, then in draw.io: Extras → Edit Diagram → change dropdown to "Mermaid" and paste it in.

@@ -44,11 +44,17 @@
     "WAIT_FOR_SUBMIT": "NO",
     "STATUS_MESSAGES_FEED_NAME": "CPSB4Q00",
     "METADATA_FILE_SUFFIX": "_metadata.txt",
-    "METADATA_FILTER_COLUMNS": [],
-    "METADATA_FILTER_FIELD_MAP": {},
+    "METADATA_FILTER_COLUMNS": ["mandatorCode", "businessDate","reconciliationGroupId"],
+    "METADATA_FILTER_FIELD_MAP": {
+        "mandator": "mandatorCode",
+        "business_date": "businessDate",
+        "reconciliation_group_id": "reconciliationGroupId"
+    },
     "METADATA_COUNT_FIELD": "total_messages_published",
     "METADATA_COUNT_TOLERANCE_PCT": "10",
     "MAX_LISTEN_DURATION_HOURS": "0.05",
     "RETRY_WAIT_SECONDS": "5",
-    "STABLE_COUNT_REQUIRED_ATTEMPTS": "2"
+    "STABLE_COUNT_REQUIRED_ATTEMPTS": "2",
+    "OVER_COUNT_BEHAVIOR": "STABILITY",
+    "OVER_COUNT_WAIT_MINUTES": "5"
 }

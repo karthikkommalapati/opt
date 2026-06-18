@@ -1,0 +1,2 @@
+{"status": {"mandatorCode": "022", "businessDate": "2026-05-25", "reconciliationGroupId": 1, "instanceIndex": 0, "totalInstances": 2, "numberOfMessagesPublished": 500}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-05-25T23:59:05+0000"}
+{"status": {"mandatorCode": "022", "businessDate": "2026-05-25", "reconciliationGroupId": 1, "instanceIndex": 1, "totalInstances": 2, "numberOfMessagesPublished": 600}, "producer": "CLIENT_STRUCTURES", "eventTimestamp": "2026-05-25T23:59:10+0000"}

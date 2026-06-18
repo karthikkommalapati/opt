@@ -402,10 +402,95 @@ def log_failure_analysis(
                 level=40
             )
 
-    dsf_logger.log_msg("Available combinations in Kafka data (last attempt):", level=40)
-    for combo_tuple, count in sorted(seen_combinations.items(), key=lambda x: str(x[0])):
-        parts = [f'{col}="{combo_tuple[i]}"' for i, col in enumerate(filter_columns)]
-        dsf_logger.log_msg(f"  {', '.join(parts)} — {count} message(s)", level=40)
+    date_idx    = filter_columns.index("businessDate") if "businessDate" in filter_columns else None
+    mandate_idx = filter_columns.index("mandatorCode") if "mandatorCode" in filter_columns else None
+
+    # Section 1: mandates available per business date
+    if date_idx is not None and mandate_idx is not None:
+        date_to_mandates: Dict[str, set] = {}
+        for combo_tuple in seen_combinations:
+            date_to_mandates.setdefault(combo_tuple[date_idx], set()).add(combo_tuple[mandate_idx])
+
+        expected_date = filter_values.get("businessDate")
+        dsf_logger.log_msg("Mandates by business date (all data in Kafka window):", level=40)
+        for d in sorted(date_to_mandates):
+            dsf_logger.log_msg(
+                f"  {d} : [{', '.join(sorted(date_to_mandates[d]))}]", level=40
+            )
+        if expected_date and expected_date not in date_to_mandates:
+            dsf_logger.log_msg(
+                f"  (Expected date {expected_date} — no data found for this date at all)",
+                level=40
+            )
+
+    # Section 2: for the expected mandate, what dates have data?
+    if mandate_idx is not None and date_idx is not None:
+        expected_mandate = filter_values.get("mandatorCode")
+        expected_date    = filter_values.get("businessDate")
+        if expected_mandate:
+            mandate_date_counts: Dict[str, int] = {}
+            for combo_tuple, cnt in seen_combinations.items():
+                if combo_tuple[mandate_idx] == expected_mandate:
+                    d = combo_tuple[date_idx]
+                    mandate_date_counts[d] = mandate_date_counts.get(d, 0) + cnt
+
+            dsf_logger.log_msg(
+                f"Dates with data for expected mandate {expected_mandate}:", level=40
+            )
+            if mandate_date_counts:
+                for d in sorted(mandate_date_counts):
+                    dsf_logger.log_msg(
+                        f"  {d} : {mandate_date_counts[d]:,} message(s)", level=40
+                    )
+                if expected_date and expected_date not in mandate_date_counts:
+                    dsf_logger.log_msg(
+                        f"  (Expected date {expected_date} — NOT present for this mandate)",
+                        level=40
+                    )
+            else:
+                dsf_logger.log_msg(
+                    f"  (none — mandate {expected_mandate} not found in Kafka window at all)",
+                    level=40
+                )
+
+    # Section 3: for the expected date, what mandates have data?
+    if date_idx is not None and mandate_idx is not None:
+        expected_date    = filter_values.get("businessDate")
+        expected_mandate = filter_values.get("mandatorCode")
+        if expected_date:
+            date_mandate_counts: Dict[str, int] = {}
+            for combo_tuple, cnt in seen_combinations.items():
+                if combo_tuple[date_idx] == expected_date:
+                    m = combo_tuple[mandate_idx]
+                    date_mandate_counts[m] = date_mandate_counts.get(m, 0) + cnt
+
+            dsf_logger.log_msg(
+                f"Mandates with data on expected date {expected_date}:", level=40
+            )
+            if date_mandate_counts:
+                for m in sorted(date_mandate_counts):
+                    dsf_logger.log_msg(
+                        f"  {m} : {date_mandate_counts[m]:,} message(s)", level=40
+                    )
+                if expected_mandate and expected_mandate not in date_mandate_counts:
+                    dsf_logger.log_msg(
+                        f"  (Expected mandate {expected_mandate} — NOT among them)",
+                        level=40
+                    )
+            else:
+                dsf_logger.log_msg(
+                    f"  (none — no messages found for this date in the Kafka window)",
+                    level=40
+                )
+
+    # Section 4: one line per combination, key=value format
+    dsf_logger.log_msg("Available combinations in Kafka window:", level=40)
+    for idx, (combo_tuple, count) in enumerate(
+        sorted(seen_combinations.items(), key=lambda x: x[0]), start=1
+    ):
+        parts = [f"{col}={combo_tuple[i]}" for i, col in enumerate(filter_columns)]
+        parts.append(f"count={count:,}")
+        dsf_logger.log_msg(f"  [{idx}] {', '.join(parts)}", level=40)
 
     dsf_logger.log_msg(sep, level=40)
 
@@ -585,6 +670,11 @@ MAX_LISTEN_DURATION_HOURS: float = float(CONFIG.get("MAX_LISTEN_DURATION_HOURS",
 MAX_LISTEN_DURATION_MINUTES: int = int(MAX_LISTEN_DURATION_HOURS * 60)
 RETRY_WAIT_SECONDS: int = int(CONFIG.get("RETRY_WAIT_SECONDS", 300))
 STABLE_COUNT_REQUIRED_ATTEMPTS: int = int(CONFIG.get("STABLE_COUNT_REQUIRED_ATTEMPTS", 2))
+OVER_COUNT_BEHAVIOR: str = str(CONFIG.get("OVER_COUNT_BEHAVIOR", "STABILITY")).upper()
+if OVER_COUNT_BEHAVIOR not in ("STABILITY", "WAIT"):
+    dsf_logger.log_msg(f"Invalid OVER_COUNT_BEHAVIOR '{OVER_COUNT_BEHAVIOR}' — must be STABILITY or WAIT. Defaulting to STABILITY.", level=30)
+    OVER_COUNT_BEHAVIOR = "STABILITY"
+OVER_COUNT_WAIT_MINUTES: int = int(CONFIG.get("OVER_COUNT_WAIT_MINUTES", 5))
 
 dsf_logger.log_msg(f"STATUS_MESSAGES_FEED_NAME          : {STATUS_MESSAGES_FEED_NAME}", level=20)
 dsf_logger.log_msg(f"METADATA_FILE_SUFFIX               : {METADATA_FILE_SUFFIX}", level=20)
@@ -604,6 +694,20 @@ else:
 dsf_logger.log_msg(f"MAX_LISTEN_DURATION_HOURS          : {MAX_LISTEN_DURATION_HOURS}", level=20)
 dsf_logger.log_msg(f"RETRY_WAIT_SECONDS                 : {RETRY_WAIT_SECONDS}", level=20)
 dsf_logger.log_msg(f"STABLE_COUNT_REQUIRED_ATTEMPTS     : {STABLE_COUNT_REQUIRED_ATTEMPTS}", level=20)
+if OVER_COUNT_BEHAVIOR == "STABILITY":
+    dsf_logger.log_msg(
+        f"OVER_COUNT_BEHAVIOR                : STABILITY "
+        f"(wait for {STABLE_COUNT_REQUIRED_ATTEMPTS} consecutive stable counts before accepting). "
+        f"To use a fixed wait window instead: set OVER_COUNT_BEHAVIOR=WAIT and OVER_COUNT_WAIT_MINUTES=<n>",
+        level=20
+    )
+else:
+    dsf_logger.log_msg(
+        f"OVER_COUNT_BEHAVIOR                : WAIT "
+        f"({OVER_COUNT_WAIT_MINUTES}-min fixed window once count exceeds expected). "
+        f"To use stability streak instead: set OVER_COUNT_BEHAVIOR=STABILITY and STABLE_COUNT_REQUIRED_ATTEMPTS=<n>",
+        level=20
+    )
 
 if METADATA_FILTER_COLUMNS and INPUT_FORMAT != "AVRO":
     dsf_logger.log_msg(
@@ -996,6 +1100,7 @@ attempt       = 0
 stable_streak  = 0     # consecutive at-or-above attempts with the same filtered_count
 prev_count     = None  # filtered_count from the previous attempt
 grace_extended = False # True after one deadline extension granted near target
+over_count_deadline: Optional[datetime] = None  # WAIT mode: set when count first exceeds expected
 
 dsf_logger.log_msg(
     f"Kafka publication window (messages searched on topic) : "
@@ -1051,6 +1156,22 @@ try:
         # messages published after the original DT_UTC_END (e.g. delayed producers) are found.
         retry_partition_stop_ts = {part: int(RETRY_TS_UTC_END * 1000) for part in partitions}
         retry_all_stop_offset_ts = assert_dict(consumer.offsets_for_times(retry_partition_stop_ts))
+
+        # Recompute start offsets for partitions still None from startup
+        # (handles empty topic at job start — publisher may have been delayed)
+        _none_parts = {p for p, v in all_start_offset_ts.items() if v is None}
+        if _none_parts:
+            _refreshed = assert_dict(consumer.offsets_for_times(
+                {p: int(TS_UTC_START * 1000) for p in _none_parts}
+            ))
+            for _p, _v in _refreshed.items():
+                if _v is not None:
+                    all_start_offset_ts[_p] = _v
+                    dsf_logger.log_msg(
+                        f"Start offset for partition {_p.partition} found on retry attempt {attempt}: "
+                        f"offset={_v[0]} ts={ts_to_str(_v[1]/1000)}",
+                        level=20
+                    )
 
         for partition, start_offset_ts in all_start_offset_ts.items():
 
@@ -1354,84 +1475,160 @@ try:
                     os._exit(1)
 
         if count_at_or_above:
-            # At or above expected — check stability before accepting
-            if filtered_count == prev_count:
-                stable_streak += 1
-                dsf_logger.log_msg(
-                    f"Count stable at {filtered_count} for {stable_streak}/"
-                    f"{STABLE_COUNT_REQUIRED_ATTEMPTS} consecutive attempt(s).",
-                    level=20
-                )
-            else:
-                stable_streak = 1
-                dsf_logger.log_msg(
-                    f"Count changed: {prev_count} → {filtered_count} "
-                    f"(>= expected {EXPECTED_COUNT}). Stability streak reset to 1/"
-                    f"{STABLE_COUNT_REQUIRED_ATTEMPTS}.",
-                    level=20
-                )
-            prev_count = filtered_count
-
-            if stable_streak == 1 and not grace_extended \
-                    and time_remaining.total_seconds() < RETRY_WAIT_SECONDS:
-                retry_deadline  += timedelta(seconds=RETRY_WAIT_SECONDS)
-                RETRY_TS_UTC_END = datetime.timestamp(retry_deadline)
-                grace_extended   = True
-                time_remaining   = retry_deadline - datetime.now()
-                dsf_logger.log_msg(
-                    f"Count first reached target with less than {RETRY_WAIT_SECONDS}s remaining — "
-                    f"extending retry deadline by {RETRY_WAIT_SECONDS}s to allow stability confirmation. "
-                    f"New retry deadline : {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}. "
-                    f"Kafka scan window now : "
-                    f"{DT_UTC_START.strftime('%Y-%m-%d %H:%M:%S')}  →  "
-                    f"{datetime.fromtimestamp(RETRY_TS_UTC_END).strftime('%Y-%m-%d %H:%M:%S')}",
-                    level=30
-                )
-
-            if stable_streak >= STABLE_COUNT_REQUIRED_ATTEMPTS:
-                _save_and_break(
-                    f"Count stable at {filtered_count} for {stable_streak} consecutive "
-                    f"attempt(s) (expected {EXPECTED_COUNT}). Accepting.",
-                    accept_level=20
-                )
-                DATA_CONSUME = "Yes"
-                if last_offsets:
+            if OVER_COUNT_BEHAVIOR == "STABILITY":
+                # ── STABILITY mode: wait for count to stop changing ──────────────
+                if filtered_count == prev_count:
+                    stable_streak += 1
                     dsf_logger.log_msg(
-                        "All offsets committed. Data successfully consumed and written.", level=20
+                        f"Count stable at {filtered_count} for {stable_streak}/"
+                        f"{STABLE_COUNT_REQUIRED_ATTEMPTS} consecutive attempt(s).",
+                        level=20
                     )
-                break
-
-            elif time_remaining.total_seconds() <= 0:
-                # Window exhausted — accept as-is (>= expected, stability unconfirmed)
-                _save_and_break(
-                    f"Retry window exhausted after {attempt} attempt(s). "
-                    f"Count {filtered_count} >= expected {EXPECTED_COUNT} but stability not "
-                    f"confirmed (streak {stable_streak}/{STABLE_COUNT_REQUIRED_ATTEMPTS}). "
-                    f"Accepting final count.",
-                    accept_level=30
-                )
-                DATA_CONSUME = "Yes"
-                if last_offsets:
+                else:
+                    stable_streak = 1
                     dsf_logger.log_msg(
-                        "All offsets committed. Data successfully consumed and written.", level=20
+                        f"Count changed: {prev_count} → {filtered_count} "
+                        f"(>= expected {EXPECTED_COUNT}). Stability streak reset to 1/"
+                        f"{STABLE_COUNT_REQUIRED_ATTEMPTS}.",
+                        level=20
                     )
-                break
+                prev_count = filtered_count
+
+                if stable_streak == 1 and not grace_extended \
+                        and time_remaining.total_seconds() < RETRY_WAIT_SECONDS:
+                    retry_deadline  += timedelta(seconds=RETRY_WAIT_SECONDS)
+                    RETRY_TS_UTC_END = datetime.timestamp(retry_deadline)
+                    grace_extended   = True
+                    time_remaining   = retry_deadline - datetime.now()
+                    dsf_logger.log_msg(
+                        f"Count first reached target with less than {RETRY_WAIT_SECONDS}s remaining — "
+                        f"extending retry deadline by {RETRY_WAIT_SECONDS}s to allow stability confirmation. "
+                        f"New retry deadline : {retry_deadline.strftime('%Y-%m-%d %H:%M:%S')}. "
+                        f"Kafka scan window now : "
+                        f"{DT_UTC_START.strftime('%Y-%m-%d %H:%M:%S')}  →  "
+                        f"{datetime.fromtimestamp(RETRY_TS_UTC_END).strftime('%Y-%m-%d %H:%M:%S')}",
+                        level=30
+                    )
+
+                if stable_streak >= STABLE_COUNT_REQUIRED_ATTEMPTS:
+                    _save_and_break(
+                        f"Count stable at {filtered_count} for {stable_streak} consecutive "
+                        f"attempt(s) (expected {EXPECTED_COUNT}). Accepting.",
+                        accept_level=20
+                    )
+                    DATA_CONSUME = "Yes"
+                    if last_offsets:
+                        dsf_logger.log_msg(
+                            "All offsets committed. Data successfully consumed and written.", level=20
+                        )
+                    break
+
+                elif time_remaining.total_seconds() <= 0:
+                    # Window exhausted — accept as-is (>= expected, stability unconfirmed)
+                    _save_and_break(
+                        f"Retry window exhausted after {attempt} attempt(s). "
+                        f"Count {filtered_count} >= expected {EXPECTED_COUNT} but stability not "
+                        f"confirmed (streak {stable_streak}/{STABLE_COUNT_REQUIRED_ATTEMPTS}). "
+                        f"Accepting final count.",
+                        accept_level=30
+                    )
+                    DATA_CONSUME = "Yes"
+                    if last_offsets:
+                        dsf_logger.log_msg(
+                            "All offsets committed. Data successfully consumed and written.", level=20
+                        )
+                    break
+
+                else:
+                    # Still time — keep retrying to check for more messages
+                    hours_remaining = time_remaining.total_seconds() / 3600
+                    next_attempt_at = (
+                        datetime.now() + timedelta(seconds=RETRY_WAIT_SECONDS)
+                    ).strftime('%Y-%m-%d %H:%M:%S')
+                    dsf_logger.log_msg(
+                        f"Count {filtered_count} >= expected {EXPECTED_COUNT}, "
+                        f"but stability streak {stable_streak}/{STABLE_COUNT_REQUIRED_ATTEMPTS} "
+                        f"not yet met. Time remaining: {hours_remaining:.2f}h. "
+                        f"Sleeping {RETRY_WAIT_SECONDS}s. Next attempt at: {next_attempt_at}",
+                        level=20
+                    )
+                    _remove_temp()
+                    py_time.sleep(RETRY_WAIT_SECONDS)
 
             else:
-                # Still time — keep retrying to check for more messages
-                hours_remaining = time_remaining.total_seconds() / 3600
-                next_attempt_at = (
-                    datetime.now() + timedelta(seconds=RETRY_WAIT_SECONDS)
-                ).strftime('%Y-%m-%d %H:%M:%S')
-                dsf_logger.log_msg(
-                    f"Count {filtered_count} >= expected {EXPECTED_COUNT}, "
-                    f"but stability streak {stable_streak}/{STABLE_COUNT_REQUIRED_ATTEMPTS} "
-                    f"not yet met. Time remaining: {hours_remaining:.2f}h. "
-                    f"Sleeping {RETRY_WAIT_SECONDS}s. Next attempt at: {next_attempt_at}",
-                    level=20
-                )
-                _remove_temp()
-                py_time.sleep(RETRY_WAIT_SECONDS)
+                # ── WAIT mode: fixed window once count exceeds expected ───────────
+                if filtered_count == EXPECTED_COUNT:
+                    # Exact match — accept immediately, no timer needed
+                    _save_and_break(
+                        f"Count exactly matches expected ({filtered_count}). Accepting immediately.",
+                        accept_level=20
+                    )
+                    DATA_CONSUME = "Yes"
+                    if last_offsets:
+                        dsf_logger.log_msg(
+                            "All offsets committed. Data successfully consumed and written.", level=20
+                        )
+                    break
+
+                else:
+                    # Count is strictly over expected
+                    if over_count_deadline is None:
+                        # First time count has exceeded expected — start the fixed wait window
+                        over_count_deadline = datetime.now() + timedelta(minutes=OVER_COUNT_WAIT_MINUTES)
+                        # Extend the retry deadline so the loop stays alive until the window expires
+                        if over_count_deadline > retry_deadline:
+                            retry_deadline   = over_count_deadline
+                            RETRY_TS_UTC_END = datetime.timestamp(retry_deadline)
+                        dsf_logger.log_msg(
+                            f"Count EXCEEDS expected: got {filtered_count:,}, expected {EXPECTED_COUNT:,}. "
+                            f"WAIT mode: starting {OVER_COUNT_WAIT_MINUTES}-min window. "
+                            f"Will accept at {over_count_deadline.strftime('%Y-%m-%d %H:%M:%S')} regardless of further changes. "
+                            f"(To use stability streak instead: set OVER_COUNT_BEHAVIOR=STABILITY)",
+                            level=30
+                        )
+                    else:
+                        secs_left = max(0.0, (over_count_deadline - datetime.now()).total_seconds())
+                        if filtered_count != prev_count:
+                            dsf_logger.log_msg(
+                                f"Count grew: {prev_count:,} → {filtered_count:,} "
+                                f"(expected {EXPECTED_COUNT:,}). "
+                                f"Timer unchanged — {secs_left:.0f}s remaining until acceptance.",
+                                level=20
+                            )
+                        else:
+                            dsf_logger.log_msg(
+                                f"Count stable at {filtered_count:,} (over expected {EXPECTED_COUNT:,}). "
+                                f"{secs_left:.0f}s remaining until acceptance.",
+                                level=20
+                            )
+
+                    prev_count = filtered_count
+
+                    if datetime.now() >= over_count_deadline:
+                        _save_and_break(
+                            f"Over-count wait window of {OVER_COUNT_WAIT_MINUTES} min expired. "
+                            f"Accepting final count {filtered_count:,} (expected {EXPECTED_COUNT:,}).",
+                            accept_level=20
+                        )
+                        DATA_CONSUME = "Yes"
+                        if last_offsets:
+                            dsf_logger.log_msg(
+                                "All offsets committed. Data successfully consumed and written.", level=20
+                            )
+                        break
+                    else:
+                        # Still inside the wait window — sleep and retry
+                        secs_left = max(0.0, (over_count_deadline - datetime.now()).total_seconds())
+                        next_attempt_at = (
+                            datetime.now() + timedelta(seconds=RETRY_WAIT_SECONDS)
+                        ).strftime('%Y-%m-%d %H:%M:%S')
+                        dsf_logger.log_msg(
+                            f"Over-count window in progress. {secs_left:.0f}s remaining. "
+                            f"Sleeping {RETRY_WAIT_SECONDS}s. Next attempt at: {next_attempt_at}",
+                            level=20
+                        )
+                        _remove_temp()
+                        py_time.sleep(RETRY_WAIT_SECONDS)
 
         else:
             # Under expected — never accept early; wait for more messages or exhaustion

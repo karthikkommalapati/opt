@@ -52,9 +52,9 @@ def parse_timestamp(record):
     if not ts_str:
         return int(datetime.now(timezone.utc).timestamp() * 1000)
     try:
-        dt = datetime.strptime(ts_str, TIMESTAMP_FMT)
+        dt = parse_ts_string(ts_str)
         return int(dt.timestamp() * 1000)
-    except ValueError:
+    except (ValueError, TypeError):
         return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
