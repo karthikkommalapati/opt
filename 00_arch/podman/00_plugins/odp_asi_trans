@@ -1,0 +1,101 @@
+#!/bin/ksh
+script_start_time=$(date +%s)
+pattern="asi."
+feed_name="CPSB4QST"
+stream="B4Q"
+
+ee_per_datum="$EE_PER_DATUM"
+mandate="$DSF_MANDATOR"
+instance_name="$DSF_INSTANCE"
+audit_id="$DSF_AUDIT_ID"
+
+
+
+chunk_size=50
+n_jobs=2
+
+inference_block_limit=100
+src_line_count=$(wc -l ${1} | awk '{print $1}')
+current_date_time=$(date +%Y-%m-%-d_%H-%M-%S)
+current_date=$(date +%Y%m%d%H%M%S)
+
+export PYTHONPATH=$DWP_ROOT/feeds/$stream/$feed_name/bin:$PYTHONPATH
+
+echo "python path is $PYTHONPATH"
+
+echo "Incoming kafka file '$1' has $src_line_count lines"
+echo "first is $1 and second is $2"
+
+dest=$( dirname $2)
+echo "Destination directory is $dest"
+
+# extract everythign
+
+extract_string=$(echo "$2" | awk -v pattern="$pattern" 'tolower($0) ~ tolower(pattern) {print substr($0, index(tolower($0), tolower(pattern)) + length(pattern))}')
+
+
+splitter_filename="splitter_final${extract_string}_${mandate}_${instance_name}.csv"
+splitter_file_path="${dest}/${splitter_filename}"
+backup_filename="backup_final${extract_string}_${mandate}_${instance_name}.csv"
+backup_file_path="${dest}/${backup_filename}"
+wrangling_filename="wrangling_final${extract_string}_${mandate}_${instance_name}.csv"
+wrangling_file_path="${dest}/${wrangling_filename}"
+
+
+full_src_file_path=${1:-"{feed_name}_orig.par"}
+dst_path="${dest%/}/"
+
+
+
+$DWP_ROOT/feeds/$stream/$feed_name/bin/cli.py -l $log_filename -m $madate -a $audit_id -i $instance_name \
+compress -i $full_src_file_path -d $dst_path -e $ee_per_datum -c  $current_date
+
+rc=?
+
+if [[ $rc -ne 0 ]]; then
+    echo "Error: Compression failed with return code $rc"
+    exit 1
+else
+    echo "Compression completed successfully with return code $rc"
+fi
+
+
+
+# ── Filter by reconciliation group ID ──────────────────────────────────────
+# Reads the status-messages metadata file to determine the target
+# reconciliationGroupId and expected record count, filters the .par file
+# in-place, and hard-fails if the count does not match.
+# Splitter will NOT run if this step exits non-zero.
+#
+# Placeholders — must match values in kafka_trigger_status_messages.py config:
+#   statusmessages_feed_name  -> STATUSMESSAGES_FEED_NAME (e.g. CPSB4Q00)
+#   metadata_suffix           -> METADATA_FILE_SUFFIX     (e.g. _metadata.txt)
+
+statusmessages_feed_name="CPSB4Q00"
+metadata_suffix="_metadata.txt"
+
+$DWP_ROOT/feeds/$stream/$feed_name/bin/filter_recon_group.py \
+    --log-file         $log_filename \
+    --kafka-data       $1 \
+    --status-feed-name $statusmessages_feed_name \
+    --metadata-suffix  $metadata_suffix \
+    --separator        "|"
+
+rc=$?
+if [[ $rc -ne 0 ]]; then
+    echo "Error: Reconciliation group filter failed (rc=$rc). Splitter will not run."
+    exit 1
+fi
+echo "Reconciliation group filter completed successfully."
+
+
+
+splitter_start_time=$(date +%s)
+
+$DWP_ROOT/feeds/$stream/$feed_name/bin/splitter.py \
+    -d $1 \
+    -o ${dest} \
+    -n $splitter_filename \
+
+
+blah blah blha,.....
