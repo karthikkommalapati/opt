@@ -22,6 +22,14 @@ INPUT PARAMETERS (CLI arguments)
                         (STATUSMESSAGES_FEED_NAME, e.g. CPSB4Q00).
                         Used to locate the metadata file.
 
+  --asof-date           Business date (YYYY-MM-DD).  Passed explicitly
+                        by the shell script to build the metadata file
+                        path — mirrors exactly what
+                        kafka_trigger_status_messages.py writes:
+                          {PC_LOD_PROC_PATH}/
+                            {STATUSMESSAGES_FEED_NAME}_{ASOF_DT}/
+                              {STATUSMESSAGES_FEED_NAME}_{ASOF_DT}{suffix}
+
   --metadata-suffix     Suffix appended to the metadata filename.
                         Default: _metadata.txt
                         Must match METADATA_FILE_SUFFIX in the
@@ -34,18 +42,8 @@ INPUT PARAMETERS (CLI arguments)
 REQUIRED ENVIRONMENT VARIABLES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   PC_LOD_PROC_PATH      Root data directory.  Combined with
-                        --status-feed-name and ASOF_DT to build the
-                        metadata file path — mirrors exactly what
-                        kafka_trigger_status_messages.py writes at
-                        line 824:
-                          {PC_LOD_PROC_PATH}/
-                            {STATUSMESSAGES_FEED_NAME}_{ASOF_DT}/
-                              {STATUSMESSAGES_FEED_NAME}_{ASOF_DT}{suffix}
-
-  SDA                   DSF stream domain abbreviation.  Used to resolve
-                        {SDA}_ASOF_DT.
-
-  {SDA}_ASOF_DT         Business date (YYYY-MM-DD).
+                        --status-feed-name and --asof-date to build the
+                        metadata file path.
 
 OUTPUT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -76,10 +74,11 @@ except (ValueError, IndexError):
 
 import dsf_logging
 
-logging_level = 20
-verbose_log   = True
-log_name      = os.path.basename(_log_file)
-log_dir       = os.path.dirname(_log_file)
+logging_level    = 20
+verbose_log      = True
+_log_file_abs    = os.path.abspath(_log_file)   # resolve to full path even if just a filename was passed
+log_name         = os.path.basename(_log_file_abs)
+log_dir          = os.path.dirname(_log_file_abs)
 
 dsf_logger = dsf_logging.DSF_logging()
 dsf_logger.get_logger(
@@ -88,7 +87,14 @@ dsf_logger.get_logger(
     level=logging_level,
     verbose=verbose_log,
 )
-dsf_logger.log_msg(f"filterReconGroup logging to: {_log_file}", level=20)
+dsf_logger.log_msg(f"filterReconGroup log file resolved to: {_log_file_abs}", level=20)
+
+# Logging level reference (used throughout this script):
+#   level=10  DEBUG    — (unused) granular step-by-step tracing
+#   level=20  INFO     — standard progress messages, startup params, filter summaries
+#   level=30  WARNING  — non-fatal issues: JSON parse errors, skipped/missing fields
+#   level=40  ERROR    — fatal failures; always routed through hard_fail() → os._exit(1)
+#   level=50  CRITICAL — (unused) reserved for catastrophic system-level failures
 
 try:
     import argparse
@@ -142,6 +148,7 @@ def main() -> None:
     parser.add_argument("--log-file",          required=True,           help="Full path to log file (framework-injected $log_filename)")
     parser.add_argument("--kafka-data",        required=True,           help="Full path to the JSONL .par file to filter (in-place)")
     parser.add_argument("--status-feed-name",  required=True,           help="Status-messages feed name (STATUSMESSAGES_FEED_NAME, e.g. CPSB4Q00)")
+    parser.add_argument("--asof-date",         required=True,           help="Business date (YYYY-MM-DD) used to build the metadata file path")
     parser.add_argument("--metadata-suffix",   default="_metadata.txt", help="Metadata filename suffix (default: _metadata.txt)")
     parser.add_argument("--separator",         default="|",             help="Field separator in the metadata file (default: |)")
     args = parser.parse_args()
@@ -151,25 +158,16 @@ def main() -> None:
     tmp_file  = data_file + ".tmp"
 
     # ── Derive metadata file path ────────────────────────────────────────────
-    # Mirrors kafka_trigger_status_messages.py lines 621-824:
+    # Mirrors kafka_trigger_status_messages.py:
     #   DATA_PATH     = $PC_LOD_PROC_PATH
-    #   ASOF_DT       = ${SDA}_ASOF_DT
     #   DATA_FOLDER   = {DATA_PATH}/{STATUSMESSAGES_FEED_NAME}_{ASOF_DT}
     #   METADATA_FILE = {DATA_FOLDER}/{STATUSMESSAGES_FEED_NAME}_{ASOF_DT}{suffix}
 
     if "PC_LOD_PROC_PATH" not in os.environ:
         hard_fail("Required environment variable not set: PC_LOD_PROC_PATH")
-    if "SDA" not in os.environ:
-        hard_fail("Required environment variable not set: SDA")
 
-    data_path   = os.environ["PC_LOD_PROC_PATH"]
-    sda         = os.environ["SDA"].upper()
-    asof_dt_var = f"{sda}_ASOF_DT"
-
-    if asof_dt_var not in os.environ:
-        hard_fail(f"Required environment variable not set: {asof_dt_var}")
-
-    asof_dt          = os.environ[asof_dt_var]
+    data_path        = os.environ["PC_LOD_PROC_PATH"]
+    asof_dt          = args.asof_date
     status_feed_name = args.status_feed_name
     metadata_suffix  = args.metadata_suffix
     metadata_dir     = os.path.join(data_path, f"{status_feed_name}_{asof_dt}")
@@ -179,8 +177,7 @@ def main() -> None:
     dsf_logger.log_msg(sep_line, level=20)
     dsf_logger.log_msg("FILTER_RECON_GROUP — startup parameters", level=20)
     dsf_logger.log_msg(f"  PC_LOD_PROC_PATH        : {data_path}", level=20)
-    dsf_logger.log_msg(f"  SDA                     : {sda}", level=20)
-    dsf_logger.log_msg(f"  ASOF_DT ({asof_dt_var:<20}): {asof_dt}", level=20)
+    dsf_logger.log_msg(f"  ASOF_DT (--asof-date)   : {asof_dt}", level=20)
     dsf_logger.log_msg(f"  STATUSMESSAGES_FEED_NAME: {status_feed_name}", level=20)
     dsf_logger.log_msg(f"  METADATA_FILE_SUFFIX    : {metadata_suffix}", level=20)
     dsf_logger.log_msg(f"  Metadata file path      : {metadata_file}", level=20)

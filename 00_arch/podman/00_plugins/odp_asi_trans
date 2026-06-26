@@ -78,6 +78,7 @@ $DWP_ROOT/feeds/$stream/$feed_name/bin/filter_recon_group.py \
     --log-file         $log_filename \
     --kafka-data       $1 \
     --status-feed-name $statusmessages_feed_name \
+    --asof-date        ${B4Q_ASOF_DT} \
     --metadata-suffix  $metadata_suffix \
     --separator        "|"
 
