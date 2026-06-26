@@ -73,6 +73,7 @@ fi
 
 statusmessages_feed_name="CPSB4Q00"
 metadata_suffix="_metadata.txt"
+skip_count_check=""           # set to "--skip-count-check" to disable count validation
 
 $DWP_ROOT/feeds/$stream/$feed_name/bin/filter_recon_group.py \
     --log-file         $log_filename \
@@ -80,7 +81,8 @@ $DWP_ROOT/feeds/$stream/$feed_name/bin/filter_recon_group.py \
     --status-feed-name $statusmessages_feed_name \
     --asof-date        ${B4Q_ASOF_DT} \
     --metadata-suffix  $metadata_suffix \
-    --separator        "|"
+    --separator        "|" \
+    ${skip_count_check}
 
 rc=$?
 if [[ $rc -ne 0 ]]; then

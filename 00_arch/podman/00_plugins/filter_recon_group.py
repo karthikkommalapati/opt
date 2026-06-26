@@ -39,6 +39,13 @@ INPUT PARAMETERS (CLI arguments)
                         Default: |
                         Must match SEPERATOR in the status-messages config.
 
+  --skip-count-check    When set, the count validation step is skipped.
+                        The script will still filter by reconciliationGroupId
+                        and write the output, but will NOT fail if the matched
+                        count differs from total_messages_published in the
+                        metadata.  A WARNING is logged when this flag is active.
+                        Default: off (count check enforced).
+
 REQUIRED ENVIRONMENT VARIABLES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   PC_LOD_PROC_PATH      Root data directory.  Combined with
@@ -151,6 +158,7 @@ def main() -> None:
     parser.add_argument("--asof-date",         required=True,           help="Business date (YYYY-MM-DD) used to build the metadata file path")
     parser.add_argument("--metadata-suffix",   default="_metadata.txt", help="Metadata filename suffix (default: _metadata.txt)")
     parser.add_argument("--separator",         default="|",             help="Field separator in the metadata file (default: |)")
+    parser.add_argument("--skip-count-check",  action="store_true",     help="Skip count validation — filter only, do not fail on count mismatch")
     args = parser.parse_args()
 
     data_file = args.kafka_data
@@ -184,6 +192,7 @@ def main() -> None:
     dsf_logger.log_msg(f"  Input .par file         : {data_file}", level=20)
     dsf_logger.log_msg(f"  Temp file (during write): {tmp_file}", level=20)
     dsf_logger.log_msg(f"  Separator               : '{sep}'", level=20)
+    dsf_logger.log_msg(f"  Count check             : {'DISABLED (--skip-count-check)' if args.skip_count_check else 'ENABLED'}", level=20)
     dsf_logger.log_msg(sep_line, level=20)
 
     # ── Load metadata and extract required fields ────────────────────────────
@@ -286,8 +295,14 @@ def main() -> None:
     dsf_logger.log_msg(f"  Matched  count (after filter)  : {matched_count:,}", level=20)
     dsf_logger.log_msg(sep_line, level=20)
 
-    # ── Count validation — hard fail if mismatch ─────────────────────────────
-    if matched_count != expected_count:
+    # ── Count validation — hard fail if mismatch (skippable via --skip-count-check) ──
+    if args.skip_count_check:
+        dsf_logger.log_msg(
+            f"Count check SKIPPED (--skip-count-check).  "
+            f"Matched {matched_count:,} record(s); metadata expected {expected_count:,}.",
+            level=30,
+        )
+    elif matched_count != expected_count:
         hard_fail(
             f"COUNT MISMATCH: expected {expected_count:,} records for "
             f"reconciliationGroupId={target_recon_id}, got {matched_count:,}. "

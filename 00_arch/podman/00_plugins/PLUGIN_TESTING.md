@@ -10,9 +10,10 @@ Testing `filter_recon_group.py` and the `odp_asi_trans` plugin locally.
 2. [Step 1 — Create the dsf_logging Stub](#2-step-1--create-the-dsf_logging-stub)
 3. [Step 2 — Set Up Test Data](#3-step-2--set-up-test-data)
 4. [Step 3 — Run the Filter Directly](#4-step-3--run-the-filter-directly)
-5. [Step 4 — Failure Scenarios](#5-step-4--failure-scenarios)
-6. [Step 5 — Simulate the Plugin Call](#6-step-5--simulate-the-plugin-call)
-7. [Troubleshooting](#7-troubleshooting)
+5. [Step 4 — Count Check Behaviour](#5-step-4--count-check-behaviour)
+6. [Step 5 — Failure Scenarios](#6-step-5--failure-scenarios)
+7. [Step 6 — Simulate the Plugin Call](#7-step-6--simulate-the-plugin-call)
+8. [Troubleshooting](#8-troubleshooting)
 
 ---
 
@@ -160,6 +161,7 @@ FILTER_RECON_GROUP — startup parameters
   METADATA_FILE_SUFFIX    : _metadata.txt
   Metadata file path      : .../STATUS_FEED_00_2026-04-22/STATUS_FEED_00_2026-04-22_metadata.txt
   Input .par file         : .../DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par
+  Count check             : ENABLED
 ======================================================================
 ...
 Target reconciliationGroupId : 1
@@ -190,14 +192,116 @@ cat ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par
 
 ---
 
-## 5. Step 4 — Failure Scenarios
+## 5. Step 4 — Count Check Behaviour
 
-### Scenario A — Count mismatch
+The count check validates that the number of matched records equals `total_messages_published` in the metadata. It is **enabled by default** and can be disabled with `--skip-count-check`.
 
-Metadata says 5 records expected, but `.par` only has 3. Script must hard-fail and leave the `.par` file unchanged.
+### With count check enabled (default)
+
+No extra flag needed. If the matched count does not equal the expected count the script hard-fails, cleans up the temp file, and exits 1. The splitter will not run.
 
 ```bash
-# Change total_messages_published in the metadata from 3 to 5
+python3 filter_recon_group.py \
+    --log-file          plugin_test.log \
+    --kafka-data        ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --status-feed-name  STATUS_FEED_00 \
+    --asof-date         2026-04-22 \
+    --metadata-suffix   _metadata.txt \
+    --separator         "|"
+```
+
+Startup log confirms it is active:
+```
+Count check             : ENABLED
+```
+
+On a mismatch:
+```
+ERROR    COUNT MISMATCH: expected 5 records for reconciliationGroupId=1, got 3.
+         Splitter will NOT run.
+```
+```
+Exit code: 1
+```
+
+---
+
+### With count check disabled (`--skip-count-check`)
+
+Pass `--skip-count-check` to bypass the validation. The script still filters by `reconciliationGroupId` and writes the output file, but a count mismatch is logged as a WARNING instead of an ERROR and the script exits 0.
+
+Use this when:
+- Testing the filter logic in isolation without needing the count to match
+- The expected count in the metadata is not yet final
+- You want to inspect the filtered output regardless of the count
+
+```bash
+python3 filter_recon_group.py \
+    --log-file          plugin_test.log \
+    --kafka-data        ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --status-feed-name  STATUS_FEED_00 \
+    --asof-date         2026-04-22 \
+    --metadata-suffix   _metadata.txt \
+    --separator         "|" \
+    --skip-count-check
+```
+
+Startup log shows it is off:
+```
+Count check             : DISABLED (--skip-count-check)
+```
+
+When counts differ, the script logs a warning but continues:
+```
+WARNING  Count check SKIPPED (--skip-count-check). Matched 3 record(s); metadata expected 5.
+```
+```
+Exit code: 0
+```
+
+The filtered `.par` file is still written and promoted — the splitter can run.
+
+---
+
+### Side-by-side comparison
+
+| Behaviour | Default (count check on) | `--skip-count-check` |
+|---|---|---|
+| Startup log | `Count check : ENABLED` | `Count check : DISABLED (--skip-count-check)` |
+| Count matches | Exit 0 — file promoted | Exit 0 — file promoted |
+| Count mismatches | Exit 1 — temp file cleaned up, splitter blocked | Exit 0 — WARNING logged, file promoted, splitter runs |
+| Metadata missing | Exit 1 always | Exit 1 always |
+
+> The metadata file is always required regardless of `--skip-count-check`. The flag only controls what happens after the count is compared — it does not bypass the metadata load.
+
+---
+
+### Enabling `--skip-count-check` in `odp_asi_trans`
+
+The plugin has a dedicated variable for this at the top of the filter block:
+
+```ksh
+skip_count_check=""   # default: count check is ON
+```
+
+To disable the count check for a run, change it to:
+
+```ksh
+skip_count_check="--skip-count-check"
+```
+
+The variable is passed directly to `filter_recon_group.py`. When empty it expands to nothing (flag absent); when set it passes the flag through.
+
+---
+
+## 6. Step 5 — Failure Scenarios
+
+### Scenario A — Count mismatch with check enabled (hard fail)
+
+Metadata expects 5 records but `.par` only has 3. Script must hard-fail and leave the `.par` file unchanged.
+
+```bash
+# Set total_messages_published to 5 in the metadata
 sed -i '' 's/|3$/|5/' ../output/get_kafka/STATUS_FEED_00_2026-04-22/STATUS_FEED_00_2026-04-22_metadata.txt
 
 python3 filter_recon_group.py \
@@ -211,19 +315,47 @@ python3 filter_recon_group.py \
 echo "Exit code: $?"   # expect 1
 ```
 
-**Expected log:**
+Expected log:
 ```
+Count check             : ENABLED
+...
 ERROR    COUNT MISMATCH: expected 5 records for reconciliationGroupId=1, got 3. Splitter will NOT run.
 ```
 
 ---
 
-### Scenario B — Metadata file missing
+### Scenario B — Count mismatch with check disabled (warning only)
 
-Status messages pipeline has not run yet, or ran for a different date.
+Same mismatch as Scenario A, but `--skip-count-check` is passed. Script warns and exits 0.
 
 ```bash
-# Remove the metadata file
+python3 filter_recon_group.py \
+    --log-file plugin_test.log \
+    --kafka-data ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --status-feed-name STATUS_FEED_00 \
+    --asof-date 2026-04-22 \
+    --metadata-suffix _metadata.txt \
+    --separator "|" \
+    --skip-count-check
+
+echo "Exit code: $?"   # expect 0
+wc -l ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par   # expect 3
+```
+
+Expected log:
+```
+Count check             : DISABLED (--skip-count-check)
+...
+WARNING  Count check SKIPPED (--skip-count-check). Matched 3 record(s); metadata expected 5.
+```
+
+---
+
+### Scenario C — Metadata file missing
+
+Status messages pipeline has not run yet, or ran for a different date. This fails regardless of `--skip-count-check`.
+
+```bash
 rm ../output/get_kafka/STATUS_FEED_00_2026-04-22/STATUS_FEED_00_2026-04-22_metadata.txt
 
 python3 filter_recon_group.py \
@@ -234,10 +366,10 @@ python3 filter_recon_group.py \
     --metadata-suffix _metadata.txt \
     --separator "|"
 
-echo "Exit code: $?"   # expect 1
+echo "Exit code: $?"   # expect 1 — metadata is always required
 ```
 
-**Expected log:**
+Expected log:
 ```
 ERROR    Metadata file not found: .../STATUS_FEED_00_2026-04-22_metadata.txt
          The status-messages script must complete successfully before this step.
@@ -245,7 +377,7 @@ ERROR    Metadata file not found: .../STATUS_FEED_00_2026-04-22_metadata.txt
 
 ---
 
-### Scenario C — Mixed reconciliation groups
+### Scenario D — Mixed reconciliation groups
 
 `.par` contains records from two different `reconciliationGroupId` values (e.g. a stale run mixed with the current run). Only records matching the ID in the metadata must survive. Count must still match after filtering.
 
@@ -273,11 +405,11 @@ python3 filter_recon_group.py \
     --metadata-suffix _metadata.txt \
     --separator "|"
 
-echo "Exit code: $?"                                                         # expect 0
-wc -l ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par          # expect 3
+echo "Exit code: $?"                                                        # expect 0
+wc -l ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par         # expect 3
 ```
 
-**Expected log summary:**
+Expected log summary:
 ```
 FILTER SUMMARY
   Total lines in .par file              : 5
@@ -291,7 +423,7 @@ FILTER SUMMARY
 
 ---
 
-## 6. Step 5 — Simulate the Plugin Call
+## 7. Step 6 — Simulate the Plugin Call
 
 `odp_asi_trans` can't be run in full locally because it depends on `$DWP_ROOT`, `$log_filename`, `cli.py`, and `splitter.py` which are all framework-injected in production. This local runner script simulates the filter step exactly as the plugin calls it.
 
@@ -300,14 +432,16 @@ Create `run_filter_local.sh` in the project root:
 ```bash
 #!/usr/bin/env bash
 # Simulates the filter_recon_group step from odp_asi_trans.
-# Usage:   bash run_filter_local.sh <ASOF_DT> [MANDATOR]
+# Usage:   bash run_filter_local.sh <ASOF_DT> [MANDATOR] [--skip-count-check]
 # Example: bash run_filter_local.sh 2026-04-22 022
+#          bash run_filter_local.sh 2026-04-22 022 --skip-count-check
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ASOF_DT="${1:-$(date +%Y-%m-%d)}"
 MANDATOR="${2:-022}"
+SKIP_COUNT_CHECK="${3:-}"          # pass "--skip-count-check" as third arg to disable
 
 STATUS_FEED="STATUS_FEED_00"
 DATA_FEED="DATA_FEED_ST"
@@ -322,6 +456,7 @@ echo "    ASOF_DT          : $ASOF_DT"
 echo "    MANDATOR         : $MANDATOR"
 echo "    PAR_FILE         : $PAR_FILE"
 echo "    PC_LOD_PROC_PATH : $PC_LOD_PROC_PATH"
+echo "    Count check      : ${SKIP_COUNT_CHECK:-ENABLED}"
 echo "    Log written to   : 00_plugins/$LOG_FILE  (full path shown inside log)"
 echo ""
 
@@ -331,7 +466,8 @@ python3 "$SCRIPT_DIR/00_plugins/filter_recon_group.py" \
     --status-feed-name "$STATUS_FEED" \
     --asof-date        "$ASOF_DT" \
     --metadata-suffix  "_metadata.txt" \
-    --separator        "|"
+    --separator        "|" \
+    ${SKIP_COUNT_CHECK}
 
 rc=$?
 if [[ $rc -ne 0 ]]; then
@@ -344,32 +480,53 @@ echo "SUCCESS — filtered .par is ready for the splitter"
 echo "    $(wc -l < "$PAR_FILE") record(s) in $PAR_FILE"
 ```
 
-Run it:
+**Run with count check on (default):**
 
 ```bash
 bash run_filter_local.sh 2026-04-22 022
 ```
 
-**How this maps to the real `odp_asi_trans` plugin:**
+**Run with count check disabled:**
 
-| `odp_asi_trans` variable | Local equivalent |
+```bash
+bash run_filter_local.sh 2026-04-22 022 --skip-count-check
+```
+
+---
+
+**How the local runner maps to `odp_asi_trans`:**
+
+| `odp_asi_trans` | Local runner equivalent |
 |---|---|
-| `$log_filename` (framework-injected) | `plugin_filter_${ASOF_DT}.log` (local file in `00_plugins/`) |
+| `$log_filename` (framework-injected) | `plugin_filter_${ASOF_DT}.log` in `00_plugins/` |
 | `$1` (input `.par` file path) | `output/get_kafka/${DATA_FEED}_${ASOF_DT}/${DATA_FEED}.par` |
 | `$DWP_ROOT/feeds/.../bin/filter_recon_group.py` | `00_plugins/filter_recon_group.py` |
 | `${B4Q_ASOF_DT}` | `$ASOF_DT` argument |
 | `$PC_LOD_PROC_PATH` | `output/get_kafka` |
+| `skip_count_check` variable | Third argument to `run_filter_local.sh` |
+
+**Enabling `--skip-count-check` in the real plugin** — edit `odp_asi_trans`:
+
+```ksh
+# Count check on (default):
+skip_count_check=""
+
+# Count check off:
+skip_count_check="--skip-count-check"
+```
 
 ---
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
 | `No module named 'dsf_logging'` | Stub not in `00_plugins/` or not on `PYTHONPATH` | Create `00_plugins/dsf_logging.py` — see Step 1 |
 | `Metadata file not found` | Pipeline hasn't run yet, or `PC_LOD_PROC_PATH` points to the wrong directory | Run the status messages pipeline first, or create the metadata file manually — see Step 2 |
-| `COUNT MISMATCH` | `.par` record count does not match `total_messages_published` in metadata | Check that the metadata was written by the same pipeline run that produced the `.par` |
+| `COUNT MISMATCH` + exit 1 | Matched count differs from `total_messages_published` and count check is enabled | Either fix the count mismatch or pass `--skip-count-check` if validation is not needed |
+| `WARNING Count check SKIPPED` in log | `--skip-count-check` was passed and counts differ | Expected behaviour — file is still written |
 | Exit 0 but `.par` has fewer lines than before | Working correctly — stale reconciliation groups were dropped | Check the FILTER SUMMARY in the log for the breakdown by group |
+| Metadata file missing fails even with `--skip-count-check` | Metadata is always required to determine the target `reconciliationGroupId` | The flag only skips count comparison — it does not bypass the metadata load |
 | `--asof-date` missing error | Argument not passed | `--asof-date` is required — always pass it explicitly |
 | `ERROR: --log-file argument is required` | `--log-file` missing | Always pass `--log-file` — even a bare filename like `test.log` is accepted |
 | Log written to unexpected location | Bare filename resolves to the script's working directory | Check the first log line — it always prints the full resolved path |
