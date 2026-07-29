@@ -185,7 +185,7 @@ def get_decimal_fields(avschema):
     return decattrs
 
 
-def validate_instance_and_get_max_runid(messages_list, mandator_filter, producer_filter, business_date):
+def validate_instance_and_get_max_runid(messages_list, mandator_filter, producer_filter, business_date, validation_mode="SEQUENTIAL"):
     """Validate that all instances are present for the max reconciliationGroupId and return validation result.
 
     Filters messages by mandator, producer and business_date, then finds the max reconciliationGroupId.
@@ -299,22 +299,32 @@ def validate_instance_and_get_max_runid(messages_list, mandator_filter, producer
     dsf_logger.log_msg(f"expected totalinstance: {total_instances}", level=20)
     
     present_instances = set(max_runid_df['status.instanceIndex'].unique())
-    expected_instances = set(range(total_instances))
-    
     dsf_logger.log_msg(f"Present instancesIndex count: {len(present_instances)}", level=20)
-    dsf_logger.log_msg(f"Expected instancesIndex count: {len(expected_instances)}", level=20)
-    
-    missing_instances = sorted(int(x) for x in expected_instances - present_instances)
-    
-    if missing_instances:
-        dsf_logger.log_msg(
-            f"VALIDATION FAILED: Missing instanceIds: {missing_instances}", level=40
-        )
-        
-        dsf_logger.log_msg(
-            f"Present instanceIds: {sorted(int(x) for x in present_instances)}", level=30
-        )
-        return False, max_run_id, missing_instances, max_runid_df
+    dsf_logger.log_msg(f"Expected total instances: {total_instances}", level=20)
+
+    if validation_mode == "UNIQUE_COUNT":
+        present_count = len(present_instances)
+        if present_count != total_instances:
+            reason = "short" if present_count < total_instances else "over"
+            missing_instances = [f"{present_count} of {total_instances} unique instances received ({reason})"]
+            dsf_logger.log_msg(
+                f"VALIDATION FAILED: {present_count} unique instanceIndex values received, expected exactly {total_instances} ({reason}). "
+                f"Present: {sorted(present_instances)}", level=40
+            )
+            return False, max_run_id, missing_instances, max_runid_df
+    else:
+        expected_instances = set(range(total_instances))
+        missing_instances = sorted(int(x) for x in expected_instances - present_instances)
+
+        if missing_instances:
+            dsf_logger.log_msg(
+                f"VALIDATION FAILED: Missing instanceIds: {missing_instances}", level=40
+            )
+
+            dsf_logger.log_msg(
+                f"Present instanceIds: {sorted(int(x) for x in present_instances)}", level=30
+            )
+            return False, max_run_id, missing_instances, max_runid_df
     
     duplicate_instances = max_runid_df[max_runid_df.duplicated(subset=['status.instanceIndex'], keep=False)]
     
@@ -442,6 +452,12 @@ def write_validation_metadata(meta_file, log_file, mandator, producer_name, feed
         os._exit(1)
 
     total_messages_published = int(validated_df['status.numberOfMessagesPublished'].sum())
+    if total_messages_published == 0:
+        dsf_logger.log_msg(
+            "METADATA ERROR: total_messages_published is 0 — all instances reported zero messages published",
+            level=40
+        )
+        os._exit(1)
     instances_counted        = int(validated_df['status.instanceIndex'].nunique())
     total_expected_instances = int(validated_df['status.totalInstances'].max())
     business_date            = str(validated_df['status.businessDate'].iloc[0])
@@ -554,7 +570,7 @@ def log_topic_match_report(messages_list, mandator, producer_filter, target_date
         # flatten status sub-dict if present
         if 'status' in df.columns:
             status_df = pd.json_normalize(df['status'].tolist())
-            status_df.columns = ['status.' + c for c in status_df.columns]
+            status_df.columns = ['status.' + str(c) for c in status_df.columns]
             df = pd.concat([df.drop('status', axis=1), status_df], axis=1)
 
         lines = [f"TOPIC MATCH REPORT  topic='{topic}'  looking for: mandator={mandator}, producer={producer_filter}, date={target_date}"]
@@ -671,6 +687,10 @@ else:
 
 MANDATOR_KEY = CONFIG.get("STREAMING_MANDATOR_KEY")
 PRODUCER_FILTER = CONFIG.get("PRODUCER_FILTER","")
+INSTANCE_VALIDATION_MODE = str(CONFIG.get("INSTANCE_VALIDATION_MODE", "SEQUENTIAL")).upper()
+if INSTANCE_VALIDATION_MODE not in ("SEQUENTIAL", "UNIQUE_COUNT"):
+    dsf_logger.log_msg(f"INSTANCE_VALIDATION_MODE must be SEQUENTIAL or UNIQUE_COUNT, got '{INSTANCE_VALIDATION_MODE}'", level=40)
+    os._exit(9)
 VALIDATE_TOPIC_MANDATOR = CONFIG.get("VALIDATE_TOPIC_MANDATOR", False)
 SSL_DIR = "/etc/ssl/"+str(CONFIG["KAFKA_USER"][DSF_MANDATOR])
 
@@ -1210,7 +1230,7 @@ dsf_logger.log_msg(f"starting validation of collected messages", level=20)
 dsf_logger.log_msg(f"Total messages collected from all partitions: {len(collected_messages)}", level=20) 
 
 is_valid, max_run_id, missing_instances, validated_df = validate_instance_and_get_max_runid(
-    collected_messages, DSF_MANDATOR, PRODUCER_FILTER, ASOF_DT
+    collected_messages, DSF_MANDATOR, PRODUCER_FILTER, ASOF_DT, INSTANCE_VALIDATION_MODE
 )
 
 
@@ -1469,7 +1489,7 @@ if not is_valid and ALLOW_NO_DATA == "YES":
     
     dsf_logger.log_msg(
         f"No initial data found. Entering wait-and-retry mode.\n"
-        f"  Kafka search window     : {DT_UTC_START} UTC → {DT_UTC_END} UTC (messages within this range)\n"
+        f"  Kafka search window     : {DT_UTC_START} UTC → {LATEST_DT_UTC_END.strftime('%Y-%m-%d %H:%M:%S')} UTC (extends forward each retry, up to polling deadline)\n"
         f"  Polling deadline (wall clock): {LATEST_DT_UTC_END.strftime('%Y-%m-%d %H:%M:%S')} UTC "
         f"({MAX_LISTEN_DURATION_HOURS}h / {MAX_LISTEN_DURATION_MINUTES} min from now)",
         level=20
@@ -1608,7 +1628,8 @@ if not is_valid and ALLOW_NO_DATA == "YES":
             retry_collected_messages,
             DSF_MANDATOR,
             PRODUCER_FILTER,
-            ASOF_DT
+            ASOF_DT,
+            INSTANCE_VALIDATION_MODE
         )
                 
         if is_valid:
@@ -1868,17 +1889,21 @@ if not is_valid and ALLOW_NO_DATA == "YES":
                 present_indices = []
                 received_data_msgs = 'N/A'
 
-            expected_range = f"indices 0 to {total_instances - 1}" if total_instances != 'N/A' else 'N/A'
-            expected_indices = list(range(total_instances)) if total_instances != 'N/A' else []
+            if INSTANCE_VALIDATION_MODE == "UNIQUE_COUNT":
+                expected_range = f"{total_instances} unique instance(s), any index values" if total_instances != 'N/A' else 'N/A'
+                publisher_issue = False
+            else:
+                expected_range = f"indices 0 to {total_instances - 1}" if total_instances != 'N/A' else 'N/A'
+                expected_indices = list(range(total_instances)) if total_instances != 'N/A' else []
+
+                # Detect publisher-side issue: right count but wrong indices
+                publisher_issue = (
+                    total_instances != 'N/A' and
+                    len(present_indices) >= total_instances and
+                    present_indices != expected_indices
+                )
 
             received_str = f"{len(present_indices)} (indices {present_indices})"
-
-            # Detect publisher-side issue: right count but wrong indices
-            publisher_issue = (
-                total_instances != 'N/A' and
-                len(present_indices) >= total_instances and
-                present_indices != expected_indices
-            )
 
             parts = [
                 f"Failure Reason: Incomplete instance set",

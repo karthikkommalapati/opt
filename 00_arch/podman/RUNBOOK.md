@@ -71,7 +71,7 @@ One Redpanda broker (a Kafka-compatible message broker) runs in a container and 
 
 **Status messages pipeline** (`inflow-topic`):
 - Messages describe how many records a downstream producer has published for a given business date
-- Script validates that ALL expected instances (0 to N-1) have arrived for the maximum `reconciliationGroupId`
+- Script validates that ALL expected instances have arrived for the maximum `reconciliationGroupId` — by default assumes 0-based contiguous indices (0 to N-1); set `INSTANCE_VALIDATION_MODE="UNIQUE_COUNT"` in config to instead just require N distinct instance IDs regardless of value (see `STATUS_MESSAGES_HOW_TO.md`)
 - Only when all instances are present does it write the output and commit offsets
 
 **Business data pipeline** (`business-topic`):
@@ -374,7 +374,7 @@ Key fields:
 - `mandatorCode` — must match `DSF_MANDATOR` you run with (e.g. `022`)
 - `businessDate` — must match `ASOF_DT` you pass to `run_local.sh`
 - `reconciliationGroupId` — the run ID; script picks the highest value
-- `instanceIndex` / `totalInstances` — 0-based; all indices 0 to N-1 must be present
+- `instanceIndex` / `totalInstances` — 0-based; all indices 0 to N-1 must be present (default `INSTANCE_VALIDATION_MODE="SEQUENTIAL"`; set to `"UNIQUE_COUNT"` if your producer uses non-sequential/arbitrary instance IDs — see `STATUS_MESSAGES_HOW_TO.md`)
 - `eventTimestamp` — **must fall inside the time window** (check with `show_window.py`)
 
 Check the time window before writing JSONL data:

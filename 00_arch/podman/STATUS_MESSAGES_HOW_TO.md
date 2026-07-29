@@ -107,6 +107,7 @@ Window = the 1-minute publication window around midnight of the business date.
 | `VALIDATE_TOPIC_MANDATOR` | string | `"NO"` | `"YES"` = verify topic contains messages for the expected mandator before proceeding |
 | `STREAMING_MANDATORY_KEY` | string | `""` | A field that must be present in every message. Empty = no mandatory field check |
 | `VALIDATION_REQUIRED_COLUMNS` | string (comma list) | — | Columns that must be present in the output. Used to validate schema completeness |
+| `INSTANCE_VALIDATION_MODE` | string | `"SEQUENTIAL"` | How instance completeness is validated — `"SEQUENTIAL"` or `"UNIQUE_COUNT"`, see detail below |
 
 **`PRODUCER_FILTER` detail:**
 Status messages contain a `producer` field. Setting this to `"CLIENT_STRUCTURES"` means
@@ -119,6 +120,25 @@ Topic contains:
   Message B: producer = "RISK_ENGINE"        ← excluded (filtered out)
   Message C: producer = "CLIENT_STRUCTURES"  ← included
 ```
+
+**`INSTANCE_VALIDATION_MODE` detail:**
+Controls how the script decides "all instances have reported in" for the max
+`reconciliationGroupId`. Different producers on the same topic (selected via
+`PRODUCER_FILTER`) can use different conventions for `instanceIndex`.
+
+- `"SEQUENTIAL"` (default) — instances are expected to publish `instanceIndex` values
+  `0` to `totalInstances - 1`, contiguous and zero-based. Validation fails (retryable)
+  if any of those specific indices is missing.
+- `"UNIQUE_COUNT"` — for producers that don't follow the 0-based contiguous convention
+  (e.g. arbitrary/non-sequential instance IDs). There's no fixed range to check against —
+  validation just requires the number of **distinct** `instanceIndex` values to equal
+  `totalInstances` exactly. Fewer than expected fails (retryable, same as missing
+  instances). More than expected also fails (an anomaly — waiting won't fix it, but it
+  goes through the same retry/exit path as any other validation failure).
+
+Both modes read the same `status.instanceIndex` / `status.totalInstances` fields, and
+both hard-fail if the same `instanceIndex` value appears twice for the max run ID
+(duplicate check is unaffected by this setting).
 
 ---
 
@@ -400,6 +420,40 @@ publisher has actually finished.
 
 ---
 
+### Scenario 11 — INSTANCE_VALIDATION_MODE = "UNIQUE_COUNT" (non-sequential instance IDs)
+
+**Setup:** A second producer, `RECON_ENGINE`, publishes to the same `inflow-topic` but
+assigns arbitrary/non-sequential `instanceIndex` values instead of `0..N-1`.
+Config: `PRODUCER_FILTER = "RECON_ENGINE"`, `INSTANCE_VALIDATION_MODE = "UNIQUE_COUNT"`,
+`totalInstances = 3`.
+
+```
+Topic messages (producer=RECON_ENGINE):
+  instanceIndex=17, totalInstances=3, numberOfMessagesPublished=100
+  instanceIndex=42, totalInstances=3, numberOfMessagesPublished=200
+  instanceIndex=5,  totalInstances=3, numberOfMessagesPublished=150
+
+Script runs with SEQUENTIAL mode (wrong setting for this producer):
+  → expected = {0, 1, 2}; present = {17, 42, 5} → ALL "missing" → never validates ✗
+
+Script runs with UNIQUE_COUNT mode (correct setting):
+  → distinct instanceIndex count = 3 == totalInstances = 3 → PASS ✓
+  → Total expected = 100 + 200 + 150 = 450
+  → Writes metadata + output → EXIT ✓
+```
+
+**If only 2 of the 3 arrive:** `2 != 3` → fails, retryable — same wait-and-retry behaviour
+as a missing instance in `SEQUENTIAL` mode.
+
+**If 4 unique indices arrive** (more than `totalInstances`): `4 != 3` → fails — this is
+treated as an anomaly, not something retrying will resolve, but it goes through the same
+`ALLOW_NO_DATA` / retry / exit path as any other validation failure (no special early-exit).
+
+**If the same instanceIndex publishes twice** (e.g. two messages with `instanceIndex=17`):
+hard fails immediately, same as `SEQUENTIAL` mode's duplicate check.
+
+---
+
 ## Quick reference — which setting to change
 
 | I want to... | Change this |
@@ -407,6 +461,7 @@ publisher has actually finished.
 | Change which topic to read from | `STREAMING_KAFKA_INFLOW_TOPIC` |
 | Adjust the time window | `LOCATION_TIME_WINDOW` (per-mandator) or `START_TS` / `STOP_TS` |
 | Filter to a specific producer | `PRODUCER_FILTER` |
+| Validate non-sequential / arbitrary instance IDs | Set `INSTANCE_VALIDATION_MODE = "UNIQUE_COUNT"` |
 | Accept messages from any producer | Set `PRODUCER_FILTER = ""` |
 | Wait longer for late messages | Increase `MAX_LISTEN_DURATION_HOURS` |
 | Include messages after the window end | Set `EXTEND_ON_ITERATE = "YES"` |

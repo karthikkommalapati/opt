@@ -20,8 +20,8 @@
         "022": {
             "START_TS":       "23:59:00",
             "START_DT_OFFSET": "0",
-            "STOP_TS":        "00:00:00",
-            "STOP_DT_OFFSET": "-1"
+            "STOP_TS":        "CURRENT",
+            "STOP_DT_OFFSET": "0"
         }
     },
     "LOCATION_TOLERANCE_PCT": {
@@ -40,6 +40,7 @@
     "STREAMING_VERBOSE": "True",
     "STREAMING_STORE_MIDLAYER": "False",
     "PRODUCER_FILTER": "CLIENT_STRUCTURES",
+    "INSTANCE_VALIDATION_MODE": "SEQUENTIAL",
     "VALIDATE_TOPIC_MANDATOR": "NO",
     "WAIT_FOR_SUBMIT": "NO",
     "STATUS_MESSAGES_FEED_NAME": "CPSB4Q00",

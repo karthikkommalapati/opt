@@ -154,6 +154,19 @@ Example: expected=1000, tolerance=10%  →  floor = 900
   actual=850 → 850 < 900  → FAIL   (below tolerance)
 ```
 
+**`PRE_FILTER_VALUES`** — additional field filter applied on top of the metadata-driven
+filter above, evaluated per message in `message_matches_filters`.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `PRE_FILTER_VALUES` | object — `{field: value or [values]}` | `{}` | Extra field-level filter on consumed business messages. All keys AND together; a key's value may be a single string (exact match) or a list (OR-match — passes if the message matches any value in the list) |
+
+```json
+"PRE_FILTER_VALUES": {"timelines": ["EOD", "ITD"]}
+```
+Passes messages where `timelines` is `EOD` or `ITD`. Field names support dot-notation
+for nested fields (e.g. `"status.timeline"`).
+
 ---
 
 ### Retry & Timing

@@ -253,8 +253,9 @@ def load_metadata_file(path: str, separator: str) -> dict:
 def message_matches_filters(msg_dict: dict, filter_values: dict) -> bool:
     """
     Returns True only if ALL filter_values match in msg_dict.
-    filter_values: {kafka_field (dot-notation ok) -> expected_str_value}
+    filter_values: {kafka_field (dot-notation ok) -> expected_str_value or list of expected_str_values}
     Top-level fields checked directly; dot-notation traverses nested dicts.
+    A list value means OR-match: the field passes if it matches any value in the list.
     """
     for field, expected in filter_values.items():
         actual = get_nested_value(msg_dict, field)
@@ -265,8 +266,12 @@ def message_matches_filters(msg_dict: dict, filter_values: dict) -> bool:
                 level=30
             )
             return False
-        if str(actual) != str(expected):
-            return False
+        if isinstance(expected, list):
+            if str(actual) not in [str(e) for e in expected]:
+                return False
+        else:
+            if str(actual) != str(expected):
+                return False
     return True
 
 
@@ -675,11 +680,13 @@ if OVER_COUNT_BEHAVIOR not in ("STABILITY", "WAIT"):
     dsf_logger.log_msg(f"Invalid OVER_COUNT_BEHAVIOR '{OVER_COUNT_BEHAVIOR}' — must be STABILITY or WAIT. Defaulting to STABILITY.", level=30)
     OVER_COUNT_BEHAVIOR = "STABILITY"
 OVER_COUNT_WAIT_MINUTES: int = int(CONFIG.get("OVER_COUNT_WAIT_MINUTES", 5))
+PRE_FILTER_VALUES: dict = dict(CONFIG.get("PRE_FILTER_VALUES", {}))
 
 dsf_logger.log_msg(f"STATUS_MESSAGES_FEED_NAME          : {STATUS_MESSAGES_FEED_NAME}", level=20)
 dsf_logger.log_msg(f"METADATA_FILE_SUFFIX               : {METADATA_FILE_SUFFIX}", level=20)
 dsf_logger.log_msg(f"METADATA_FILTER_COLUMNS            : {METADATA_FILTER_COLUMNS}", level=20)
 dsf_logger.log_msg(f"METADATA_FILTER_FIELD_MAP          : {METADATA_FILTER_FIELD_MAP}", level=20)
+dsf_logger.log_msg(f"PRE_FILTER_VALUES                  : {PRE_FILTER_VALUES}", level=20)
 dsf_logger.log_msg(f"METADATA_COUNT_FIELD               : {METADATA_COUNT_FIELD}", level=20)
 if _location_tol is not None:
     dsf_logger.log_msg(
@@ -1148,6 +1155,7 @@ try:
 
         filtered_count = 0
         total_seen     = 0
+        pre_filter_matched_count = 0
         # seen_combinations key = tuple of field values in METADATA_FILTER_COLUMNS order
         seen_combinations: Dict[tuple, int] = {}
         last_offsets: Dict[kafka.TopicPartition, Tuple[int, int]] = {}
@@ -1331,6 +1339,14 @@ try:
                                 )
                                 os._exit(1)
 
+                    # --- Apply pre-filter first (checked before metadata filter / seen_combinations) ---
+                    if raw_msg_dict is not None and PRE_FILTER_VALUES:
+                        if not message_matches_filters(raw_msg_dict, PRE_FILTER_VALUES):
+                            if omsg_off >= end_offset:
+                                break
+                            continue
+                        pre_filter_matched_count += 1
+
                     # --- Track seen combinations for failure analysis (before filtering) ---
                     if raw_msg_dict is not None and METADATA_FILTER_COLUMNS:
                         combo = tuple(
@@ -1405,10 +1421,12 @@ try:
             )
 
         # End of partition loop for this attempt
+        pre_filter_note = f", pre_filter_matched={pre_filter_matched_count}" if PRE_FILTER_VALUES else ""
         dsf_logger.log_msg(
             f"Attempt {attempt} complete: "
             f"total_messages_seen_in_window={total_seen}, "
-            f"messages_matching_all_filters={filtered_count}",
+            f"messages_matching_all_filters={filtered_count}"
+            f"{pre_filter_note}",
             level=20
         )
 
@@ -1656,6 +1674,14 @@ try:
                     break
                 else:
                     _remove_temp()
+                    if PRE_FILTER_VALUES and pre_filter_matched_count == 0 and total_seen > 0:
+                        dsf_logger.log_msg(
+                            f"PRE_FILTER_VALUES={PRE_FILTER_VALUES} matched 0 of {total_seen} total "
+                            f"message(s) seen in the scan window — check the filter field name(s)/"
+                            f"value(s) are correct for this topic. This is likely a configuration "
+                            f"issue, not a timing issue.",
+                            level=40
+                        )
                     dsf_logger.log_msg(
                         f"Retry window exhausted after {attempt} attempt(s). "
                         f"Final count {filtered_count} is BELOW lower tolerance threshold "

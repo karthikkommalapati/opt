@@ -39,18 +39,19 @@ INPUT PARAMETERS (CLI arguments)
                         Default: |
                         Must match SEPERATOR in the status-messages config.
 
+  --data-path           Root data directory (value of $PC_LOD_PROC_PATH
+                        in production).  Combined with --status-feed-name
+                        and --asof-date to build the metadata file path:
+                          {data-path}/
+                            {status-feed-name}_{asof-date}/
+                              {status-feed-name}_{asof-date}{suffix}
+
   --skip-count-check    When set, the count validation step is skipped.
                         The script will still filter by reconciliationGroupId
                         and write the output, but will NOT fail if the matched
                         count differs from total_messages_published in the
                         metadata.  A WARNING is logged when this flag is active.
                         Default: off (count check enforced).
-
-REQUIRED ENVIRONMENT VARIABLES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  PC_LOD_PROC_PATH      Root data directory.  Combined with
-                        --status-feed-name and --asof-date to build the
-                        metadata file path.
 
 OUTPUT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -154,6 +155,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--log-file",          required=True,           help="Full path to log file (framework-injected $log_filename)")
     parser.add_argument("--kafka-data",        required=True,           help="Full path to the JSONL .par file to filter (in-place)")
+    parser.add_argument("--data-path",         required=True,           help="Root data directory ($PC_LOD_PROC_PATH in production)")
     parser.add_argument("--status-feed-name",  required=True,           help="Status-messages feed name (STATUSMESSAGES_FEED_NAME, e.g. CPSB4Q00)")
     parser.add_argument("--asof-date",         required=True,           help="Business date (YYYY-MM-DD) used to build the metadata file path")
     parser.add_argument("--metadata-suffix",   default="_metadata.txt", help="Metadata filename suffix (default: _metadata.txt)")
@@ -167,14 +169,11 @@ def main() -> None:
 
     # ── Derive metadata file path ────────────────────────────────────────────
     # Mirrors kafka_trigger_status_messages.py:
-    #   DATA_PATH     = $PC_LOD_PROC_PATH
+    #   DATA_PATH     = --data-path  ($PC_LOD_PROC_PATH in production)
     #   DATA_FOLDER   = {DATA_PATH}/{STATUSMESSAGES_FEED_NAME}_{ASOF_DT}
     #   METADATA_FILE = {DATA_FOLDER}/{STATUSMESSAGES_FEED_NAME}_{ASOF_DT}{suffix}
 
-    if "PC_LOD_PROC_PATH" not in os.environ:
-        hard_fail("Required environment variable not set: PC_LOD_PROC_PATH")
-
-    data_path        = os.environ["PC_LOD_PROC_PATH"]
+    data_path        = args.data_path
     asof_dt          = args.asof_date
     status_feed_name = args.status_feed_name
     metadata_suffix  = args.metadata_suffix
@@ -184,7 +183,7 @@ def main() -> None:
     sep_line = "=" * 70
     dsf_logger.log_msg(sep_line, level=20)
     dsf_logger.log_msg("FILTER_RECON_GROUP — startup parameters", level=20)
-    dsf_logger.log_msg(f"  PC_LOD_PROC_PATH        : {data_path}", level=20)
+    dsf_logger.log_msg(f"  --data-path             : {data_path}", level=20)
     dsf_logger.log_msg(f"  ASOF_DT (--asof-date)   : {asof_dt}", level=20)
     dsf_logger.log_msg(f"  STATUSMESSAGES_FEED_NAME: {status_feed_name}", level=20)
     dsf_logger.log_msg(f"  METADATA_FILE_SUFFIX    : {metadata_suffix}", level=20)

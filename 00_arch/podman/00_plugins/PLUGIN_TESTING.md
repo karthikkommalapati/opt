@@ -129,11 +129,10 @@ Run from inside `00_plugins/` so Python finds the `dsf_logging` stub. Set `PC_LO
 ```bash
 cd 00_plugins
 
-export PC_LOD_PROC_PATH="/full/path/to/trigger_based_new_podman/output/get_kafka"
-
 python3 filter_recon_group.py \
     --log-file          plugin_test.log \
     --kafka-data        ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --data-path         /full/path/to/trigger_based_new_podman/output/get_kafka \
     --status-feed-name  STATUS_FEED_00 \
     --asof-date         2026-04-22 \
     --metadata-suffix   _metadata.txt \
@@ -155,7 +154,7 @@ The first line of the log tells you the resolved path where logs are being writt
 ```
 ======================================================================
 FILTER_RECON_GROUP — startup parameters
-  PC_LOD_PROC_PATH        : /full/path/to/output/get_kafka
+  --data-path             : /full/path/to/output/get_kafka
   ASOF_DT (--asof-date)   : 2026-04-22
   STATUSMESSAGES_FEED_NAME: STATUS_FEED_00
   METADATA_FILE_SUFFIX    : _metadata.txt
@@ -204,6 +203,7 @@ No extra flag needed. If the matched count does not equal the expected count the
 python3 filter_recon_group.py \
     --log-file          plugin_test.log \
     --kafka-data        ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --data-path         /full/path/to/trigger_based_new_podman/output/get_kafka \
     --status-feed-name  STATUS_FEED_00 \
     --asof-date         2026-04-22 \
     --metadata-suffix   _metadata.txt \
@@ -239,6 +239,7 @@ Use this when:
 python3 filter_recon_group.py \
     --log-file          plugin_test.log \
     --kafka-data        ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --data-path         /full/path/to/trigger_based_new_podman/output/get_kafka \
     --status-feed-name  STATUS_FEED_00 \
     --asof-date         2026-04-22 \
     --metadata-suffix   _metadata.txt \
@@ -307,6 +308,7 @@ sed -i '' 's/|3$/|5/' ../output/get_kafka/STATUS_FEED_00_2026-04-22/STATUS_FEED_
 python3 filter_recon_group.py \
     --log-file plugin_test.log \
     --kafka-data ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --data-path /full/path/to/trigger_based_new_podman/output/get_kafka \
     --status-feed-name STATUS_FEED_00 \
     --asof-date 2026-04-22 \
     --metadata-suffix _metadata.txt \
@@ -332,6 +334,7 @@ Same mismatch as Scenario A, but `--skip-count-check` is passed. Script warns an
 python3 filter_recon_group.py \
     --log-file plugin_test.log \
     --kafka-data ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --data-path /full/path/to/trigger_based_new_podman/output/get_kafka \
     --status-feed-name STATUS_FEED_00 \
     --asof-date 2026-04-22 \
     --metadata-suffix _metadata.txt \
@@ -361,6 +364,7 @@ rm ../output/get_kafka/STATUS_FEED_00_2026-04-22/STATUS_FEED_00_2026-04-22_metad
 python3 filter_recon_group.py \
     --log-file plugin_test.log \
     --kafka-data ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --data-path /full/path/to/trigger_based_new_podman/output/get_kafka \
     --status-feed-name STATUS_FEED_00 \
     --asof-date 2026-04-22 \
     --metadata-suffix _metadata.txt \
@@ -400,6 +404,7 @@ EOF
 python3 filter_recon_group.py \
     --log-file plugin_test.log \
     --kafka-data ../output/get_kafka/DATA_FEED_ST_2026-04-22/DATA_FEED_ST.par \
+    --data-path /full/path/to/trigger_based_new_podman/output/get_kafka \
     --status-feed-name STATUS_FEED_00 \
     --asof-date 2026-04-22 \
     --metadata-suffix _metadata.txt \
@@ -446,23 +451,24 @@ SKIP_COUNT_CHECK="${3:-}"          # pass "--skip-count-check" as third arg to d
 STATUS_FEED="STATUS_FEED_00"
 DATA_FEED="DATA_FEED_ST"
 PAR_FILE="$SCRIPT_DIR/output/get_kafka/${DATA_FEED}_${ASOF_DT}/${DATA_FEED}.par"
+DATA_PATH="$SCRIPT_DIR/output/get_kafka"
 LOG_FILE="plugin_filter_${ASOF_DT}.log"
 
-export PC_LOD_PROC_PATH="$SCRIPT_DIR/output/get_kafka"
 export PYTHONPATH="$SCRIPT_DIR/00_plugins:$PYTHONPATH"
 
 echo ">>> FILTER STEP — local simulation"
-echo "    ASOF_DT          : $ASOF_DT"
-echo "    MANDATOR         : $MANDATOR"
-echo "    PAR_FILE         : $PAR_FILE"
-echo "    PC_LOD_PROC_PATH : $PC_LOD_PROC_PATH"
-echo "    Count check      : ${SKIP_COUNT_CHECK:-ENABLED}"
-echo "    Log written to   : 00_plugins/$LOG_FILE  (full path shown inside log)"
+echo "    ASOF_DT    : $ASOF_DT"
+echo "    MANDATOR   : $MANDATOR"
+echo "    PAR_FILE   : $PAR_FILE"
+echo "    DATA_PATH  : $DATA_PATH"
+echo "    Count check: ${SKIP_COUNT_CHECK:-ENABLED}"
+echo "    Log written: 00_plugins/$LOG_FILE  (full path shown inside log)"
 echo ""
 
 python3 "$SCRIPT_DIR/00_plugins/filter_recon_group.py" \
     --log-file         "$LOG_FILE" \
     --kafka-data       "$PAR_FILE" \
+    --data-path        "$DATA_PATH" \
     --status-feed-name "$STATUS_FEED" \
     --asof-date        "$ASOF_DT" \
     --metadata-suffix  "_metadata.txt" \
@@ -502,7 +508,7 @@ bash run_filter_local.sh 2026-04-22 022 --skip-count-check
 | `$1` (input `.par` file path) | `output/get_kafka/${DATA_FEED}_${ASOF_DT}/${DATA_FEED}.par` |
 | `$DWP_ROOT/feeds/.../bin/filter_recon_group.py` | `00_plugins/filter_recon_group.py` |
 | `${B4Q_ASOF_DT}` | `$ASOF_DT` argument |
-| `$PC_LOD_PROC_PATH` | `output/get_kafka` |
+| `--data-path $PC_LOD_PROC_PATH` | `--data-path "$DATA_PATH"` (`output/get_kafka`) |
 | `skip_count_check` variable | Third argument to `run_filter_local.sh` |
 
 **Enabling `--skip-count-check` in the real plugin** — edit `odp_asi_trans`:
@@ -522,7 +528,7 @@ skip_count_check="--skip-count-check"
 | Symptom | Cause | Fix |
 |---|---|---|
 | `No module named 'dsf_logging'` | Stub not in `00_plugins/` or not on `PYTHONPATH` | Create `00_plugins/dsf_logging.py` — see Step 1 |
-| `Metadata file not found` | Pipeline hasn't run yet, or `PC_LOD_PROC_PATH` points to the wrong directory | Run the status messages pipeline first, or create the metadata file manually — see Step 2 |
+| `Metadata file not found` | Pipeline hasn't run yet, or `--data-path` points to the wrong directory | Run the status messages pipeline first, or create the metadata file manually — see Step 2 |
 | `COUNT MISMATCH` + exit 1 | Matched count differs from `total_messages_published` and count check is enabled | Either fix the count mismatch or pass `--skip-count-check` if validation is not needed |
 | `WARNING Count check SKIPPED` in log | `--skip-count-check` was passed and counts differ | Expected behaviour — file is still written |
 | Exit 0 but `.par` has fewer lines than before | Working correctly — stale reconciliation groups were dropped | Check the FILTER SUMMARY in the log for the breakdown by group |

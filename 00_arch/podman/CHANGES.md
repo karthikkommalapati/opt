@@ -178,3 +178,88 @@ To revert to STABILITY mode:
 ```json
 "OVER_COUNT_BEHAVIOR": "STABILITY"
 ```
+
+---
+
+# kafka_trigger_status_messages.py — Configurable instance validation mode (2026-07-24)
+
+## Feature: `INSTANCE_VALIDATION_MODE`
+
+**Background:** `validate_instance_and_get_max_runid` assumed every producer numbers its
+instances `0` to `totalInstances - 1`, contiguous and zero-based. A second producer
+publishing to the same topic (same message structure, differentiated by `PRODUCER_FILTER`)
+uses non-sequential/arbitrary `instanceIndex` values — the only requirement for that
+producer is that `totalInstances` distinct index values show up, not that they form a
+specific range.
+
+**New config key** (`status_messages_config.json`):
+
+| Key | Values | Default | Purpose |
+|---|---|---|---|
+| `INSTANCE_VALIDATION_MODE` | `"SEQUENTIAL"` / `"UNIQUE_COUNT"` | `"SEQUENTIAL"` | How instance completeness is validated |
+
+### SEQUENTIAL mode (default — existing behaviour unchanged)
+
+- Expected set = `{0, 1, ..., totalInstances-1}`. Missing = expected − present.
+- Fails (retryable) if any expected index is absent.
+- Fails (hard) if the same index appears more than once (existing duplicate check, unchanged).
+
+### UNIQUE_COUNT mode (new)
+
+- No fixed expected range. Just compares `len(distinct instanceIndex values)` to `totalInstances`.
+- Exactly equal → pass.
+- Fewer than expected → fails, retryable (same as missing instances today — waiting may resolve it).
+- More than expected → fails too, through the same retry/exit path (an anomaly — extra unique
+  instances won't be resolved by waiting, but no special early-exit was added; it just fails
+  like any other validation failure and is subject to the existing `ALLOW_NO_DATA` / retry behaviour).
+- Row-level duplicate `instanceIndex` values still hard-fail, same as `SEQUENTIAL` mode.
+
+**Code changes** (`kafka_trigger_status_messages.py`):
+- `validate_instance_and_get_max_runid(...)` takes a new `validation_mode="SEQUENTIAL"` parameter;
+  branches only at the missing/expected computation (~line 292-326). Duplicate check untouched.
+- Both call sites (initial pass + retry-loop pass) now pass `INSTANCE_VALIDATION_MODE` through.
+- The final failure report's "publisher_issue" heuristic (compares present indices to an expected
+  0..N-1 range) is skipped entirely when mode is `UNIQUE_COUNT`, since there's no range to compare against.
+
+**Switching modes** — add/edit in `status_messages_config.json`:
+```json
+"INSTANCE_VALIDATION_MODE": "UNIQUE_COUNT"
+```
+Omit the key (or set `"SEQUENTIAL"`) to keep today's behaviour.
+
+---
+
+# 00_get_kafka.py — Multi-value support for `PRE_FILTER_VALUES` (2026-07-27)
+
+## Feature: OR-match list values in `PRE_FILTER_VALUES`
+
+**Background:** `PRE_FILTER_VALUES` (`get_kafka_config.json`) is a per-field filter applied
+to each consumed business message via `message_matches_filters`. It only supported a single
+expected value per field (exact string match), so a field like `timelines` couldn't accept
+more than one valid value (e.g. `EOD` or `ITD`) without excluding messages.
+
+**Code change** (`message_matches_filters`, ~line 253-273): if a filter's value is a list,
+the field passes when the message's actual value matches **any** entry in the list
+(OR-match). Plain string values keep doing exact match, unchanged. Filters across different
+keys are still AND'd together — only the multi-value case within a single key is new.
+
+```python
+if isinstance(expected, list):
+    if str(actual) not in [str(e) for e in expected]:
+        return False
+else:
+    if str(actual) != str(expected):
+        return False
+```
+
+**Example** — accept messages where `timelines` is either `EOD` or `ITD`:
+```json
+"PRE_FILTER_VALUES": {"timelines": ["EOD", "ITD"]}
+```
+
+Single-value filters are unchanged:
+```json
+"PRE_FILTER_VALUES": {"timelines": "EOD"}
+```
+
+Full worked example: Scenario 11 in `STATUS_MESSAGES_HOW_TO.md`.

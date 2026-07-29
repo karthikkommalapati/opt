@@ -12,8 +12,8 @@
         "022": {
             "START_TS": "16:00:00",
             "START_DT_OFFSET": "0",
-            "STOP_TS": "16:00:00",
-            "STOP_DT_OFFSET": "-1"
+            "STOP_TS": "CURRENT",
+            "STOP_DT_OFFSET": "0"
         }
     },
     "LOCATION_TOLERANCE_PCT": {
@@ -30,8 +30,8 @@
     "OUTPUT_DATA": "JSON",
     "START_TS": "16:00:00",
     "START_DT_OFFSET": "0",
-    "STOP_TS": "16:00:00",
-    "STOP_DT_OFFSET": "-1",
+    "STOP_TS": "CURRENT",
+    "STOP_DT_OFFSET": "0",
     "EXTEND_ON_ITERATE": "NO",
     "COMMIT_CNT": "50",
     "STREAMING_TIMESTAMP_KEY": "std_enqueueTime",
@@ -56,5 +56,6 @@
     "RETRY_WAIT_SECONDS": "5",
     "STABLE_COUNT_REQUIRED_ATTEMPTS": "2",
     "OVER_COUNT_BEHAVIOR": "STABILITY",
-    "OVER_COUNT_WAIT_MINUTES": "5"
+    "OVER_COUNT_WAIT_MINUTES": "5",
+    "PRE_FILTER_VALUES": {"timelines": ["EOD", "ITD"]}
 }

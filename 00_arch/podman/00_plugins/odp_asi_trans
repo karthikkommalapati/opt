@@ -78,6 +78,7 @@ skip_count_check=""           # set to "--skip-count-check" to disable count val
 $DWP_ROOT/feeds/$stream/$feed_name/bin/filter_recon_group.py \
     --log-file         $log_filename \
     --kafka-data       $1 \
+    --data-path        $PC_LOD_PROC_PATH \
     --status-feed-name $statusmessages_feed_name \
     --asof-date        ${B4Q_ASOF_DT} \
     --metadata-suffix  $metadata_suffix \
