@@ -57,5 +57,6 @@
     "STABLE_COUNT_REQUIRED_ATTEMPTS": "2",
     "OVER_COUNT_BEHAVIOR": "STABILITY",
     "OVER_COUNT_WAIT_MINUTES": "5",
-    "PRE_FILTER_VALUES": {"timelines": ["EOD", "ITD"]}
+    "PRE_FILTER_VALUES": {"timeliness": ["EOD", "ITD"]},
+    "VALIDATION_FILTER_VALUES": {"timeliness": ["EOD", "ITD"]}
 }

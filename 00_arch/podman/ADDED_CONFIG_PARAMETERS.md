@@ -260,6 +260,79 @@ A message passes the `timelines` filter if its value is `EOD` or `ITD`.
 ```
 Passes only if `timelines` is `EOD` or `ITD` **and** `region` is exactly `EMEA`.
 
+**Config keys are case-insensitive:** field-name keys (e.g. `"timelines"` /
+`"TIMELINES"`) are lowercased when the config is loaded, since the actual message field
+name from the Avro schema is fixed and typically lowercase.
+
+**Values are also matched case-insensitively:** `message_matches_filters`
+(`00_get_kafka.py:270-275`) uppercases both the config's expected value and the
+message's actual value before comparing, so `"EOD"` in config matches `"eod"`, `"Eod"`,
+`"EOD"`, etc. in the message. Standardize on one case in your config (uppercase is the
+convention used throughout this doc); the actual message data can be any case.
+
+**Empty-string values are a footgun, not a way to disable a filter:** `{"timelines": ""}`
+does NOT turn off filtering on that field — it means "only match messages where
+`timelines` is itself an empty string," which silently excludes every message with a
+real value. The script detects this at startup and logs a `WARNING` for each offending
+field (`00_get_kafka.py:733-749`). To disable filtering on a field, remove the key
+entirely (or set the whole filter object to `{}`).
+
+**Config shape is validated at startup, not silently ignored:** both `PRE_FILTER_VALUES`
+and `VALIDATION_FILTER_VALUES` are loaded through `load_and_validate_filter_config()`
+(`00_get_kafka.py:288-322`), which requires each value to be a single string/number, or
+a list of strings/numbers for OR-matching — never a nested object. Two failure modes are
+caught with a clear `CONFIG ERROR` log and exit code 9, instead of a raw traceback or a
+silent zero-match:
+- Wrong top-level type, e.g. `"PRE_FILTER_VALUES": ["EOD", "ITD"]` (should be an object).
+- Wrong value type, e.g. `"timelines": {"code": "EOD"}` (nested object as a value — use
+  dot-notation in the *key* for nested fields instead, e.g. `"status.timelines"`).
+
+A message that fails `PRE_FILTER_VALUES` is dropped entirely — never written to the
+output file, never counted anywhere. See `VALIDATION_FILTER_VALUES` below if you need
+count validation on a subset without dropping the rest of the messages.
+
+### `VALIDATION_FILTER_VALUES`
+
+| | |
+|---|---|
+| **Type** | object — `{field: expected_value}`, same shape and matching rules as `PRE_FILTER_VALUES` |
+| **Default** | `{}` (every written message counts toward validation) |
+
+**What it does:** A second, independent field-level filter that controls only which
+messages count toward the expected-count validation (`EXPECTED_COUNT` from the metadata
+file) — it has no effect on what gets written to the output file. Use it when you need
+to collect every message from the topic, but the expected count from the status message
+only applies to a subset of them.
+
+Internally, every message written to the file increments `filtered_count` (a pure
+"rows written" tally, used only in logging). A second counter, `validation_count`, is
+incremented right after — either unconditionally (if `VALIDATION_FILTER_VALUES` is
+empty) or only when the message also matches `VALIDATION_FILTER_VALUES`.
+`validation_count`, not `filtered_count`, is what the entire accept/retry/tolerance loop
+compares against `EXPECTED_COUNT`. They're equal unless `VALIDATION_FILTER_VALUES` is set.
+
+**Log visibility:** when `filtered_count` and `validation_count` can diverge, the script
+tells you so in two places rather than leaving you to infer it from raw numbers — a
+startup `NOTE` (`00_get_kafka.py:757-764`, fires only when `VALIDATION_FILTER_VALUES` is
+set and differs from `PRE_FILTER_VALUES`) and an `Output summary` block logged at
+acceptance (`00_get_kafka.py:1536-1548`) showing rows written vs. rows validated vs.
+expected count, with an explicit NOTE line whenever they differ.
+
+**Example — collect everything, validate a subset:**
+```json
+"PRE_FILTER_VALUES": {},
+"VALIDATION_FILTER_VALUES": {"timelines": ["EOD", "ITD"]}
+```
+Every message on the topic is written to the output file. Only messages where
+`timelines` is `EOD` or `ITD` count toward matching `EXPECTED_COUNT`.
+
+**Interaction with `PRE_FILTER_VALUES`:** `PRE_FILTER_VALUES` is applied first in the
+per-message loop and drops non-matching messages before `VALIDATION_FILTER_VALUES` ever
+runs. If both are set to *different* criteria, the effective validation count becomes
+the intersection of both filters — `VALIDATION_FILTER_VALUES` only ever sees whatever
+`PRE_FILTER_VALUES` already let through. If you need `VALIDATION_FILTER_VALUES` to
+apply independently, leave `PRE_FILTER_VALUES` empty (`{}`) for that topic.
+
 ---
 
 ## 3. `kafka_trigger_status_messages.py`-only parameters

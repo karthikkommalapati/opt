@@ -256,6 +256,7 @@ def message_matches_filters(msg_dict: dict, filter_values: dict) -> bool:
     filter_values: {kafka_field (dot-notation ok) -> expected_str_value or list of expected_str_values}
     Top-level fields checked directly; dot-notation traverses nested dicts.
     A list value means OR-match: the field passes if it matches any value in the list.
+    Matching is case-insensitive on values (field names are matched as-is).
     """
     for field, expected in filter_values.items():
         actual = get_nested_value(msg_dict, field)
@@ -267,12 +268,58 @@ def message_matches_filters(msg_dict: dict, filter_values: dict) -> bool:
             )
             return False
         if isinstance(expected, list):
-            if str(actual) not in [str(e) for e in expected]:
+            if str(actual).upper() not in [str(e).upper() for e in expected]:
                 return False
         else:
-            if str(actual) != str(expected):
+            if str(actual).upper() != str(expected).upper():
                 return False
     return True
+
+
+_FILTER_CONFIG_FORMAT_HELP = (
+    "Correct format examples:\n"
+    '  Normal (top-level) field:   "{name}": {{"fieldName": "VALUE"}}\n'
+    '  OR-match (multiple values): "{name}": {{"fieldName": ["VALUE1", "VALUE2"]}}\n'
+    "  Nested field (dot-notation in the KEY, not the value):\n"
+    '                               "{name}": {{"parent.child": "VALUE"}}'
+)
+
+
+def load_and_validate_filter_config(name: str, config: dict) -> dict:
+    """
+    Loads a PRE_FILTER_VALUES / VALIDATION_FILTER_VALUES-shaped config entry, lowercases
+    its field-name keys, and validates its shape. Hard-exits with a clear message and
+    format examples on any structural error, rather than crashing with a raw traceback
+    or silently matching nothing.
+    """
+    raw = config.get(name, {})
+    try:
+        raw_dict = dict(raw)
+    except (TypeError, ValueError):
+        dsf_logger.log_msg(
+            f"CONFIG ERROR: {name} must be a JSON object ({{...}}), got: {raw!r}.\n"
+            f"{_FILTER_CONFIG_FORMAT_HELP.format(name=name)}",
+            level=40
+        )
+        os._exit(9)
+
+    result = {str(k).lower(): v for k, v in raw_dict.items()}
+
+    for field, expected in result.items():
+        values_to_check = expected if isinstance(expected, list) else [expected]
+        for v in values_to_check:
+            if isinstance(v, (dict, list)):
+                dsf_logger.log_msg(
+                    f"CONFIG ERROR: {name} field '{field}' has an unsupported value type "
+                    f"({type(v).__name__}): {expected!r}. Values must be a single "
+                    f"string/number, or a list of strings/numbers for OR-matching — not a "
+                    f"nested object or list-of-lists.\n"
+                    f"{_FILTER_CONFIG_FORMAT_HELP.format(name=name)}",
+                    level=40
+                )
+                os._exit(9)
+
+    return result
 
 
 def log_count_comparison(
@@ -680,13 +727,42 @@ if OVER_COUNT_BEHAVIOR not in ("STABILITY", "WAIT"):
     dsf_logger.log_msg(f"Invalid OVER_COUNT_BEHAVIOR '{OVER_COUNT_BEHAVIOR}' — must be STABILITY or WAIT. Defaulting to STABILITY.", level=30)
     OVER_COUNT_BEHAVIOR = "STABILITY"
 OVER_COUNT_WAIT_MINUTES: int = int(CONFIG.get("OVER_COUNT_WAIT_MINUTES", 5))
-PRE_FILTER_VALUES: dict = dict(CONFIG.get("PRE_FILTER_VALUES", {}))
+PRE_FILTER_VALUES: dict = load_and_validate_filter_config("PRE_FILTER_VALUES", CONFIG)
+VALIDATION_FILTER_VALUES: dict = load_and_validate_filter_config("VALIDATION_FILTER_VALUES", CONFIG)
+
+for _filter_name, _filter_dict in (
+    ("PRE_FILTER_VALUES", PRE_FILTER_VALUES),
+    ("VALIDATION_FILTER_VALUES", VALIDATION_FILTER_VALUES),
+):
+    for _field, _expected in _filter_dict.items():
+        _has_blank = (_expected == "") or (
+            isinstance(_expected, list) and any(_e == "" for _e in _expected)
+        )
+        if _has_blank:
+            dsf_logger.log_msg(
+                f"WARNING: {_filter_name} field '{_field}' has an empty-string value. "
+                f"This does NOT disable filtering on that field — it means only messages "
+                f"where '{_field}' is itself an empty string will match; messages with a "
+                f"real value will be excluded. To disable filtering on this field, remove "
+                f"the key from {_filter_name} entirely (or set {_filter_name} to {{}}).",
+                level=30
+            )
 
 dsf_logger.log_msg(f"STATUS_MESSAGES_FEED_NAME          : {STATUS_MESSAGES_FEED_NAME}", level=20)
 dsf_logger.log_msg(f"METADATA_FILE_SUFFIX               : {METADATA_FILE_SUFFIX}", level=20)
 dsf_logger.log_msg(f"METADATA_FILTER_COLUMNS            : {METADATA_FILTER_COLUMNS}", level=20)
 dsf_logger.log_msg(f"METADATA_FILTER_FIELD_MAP          : {METADATA_FILTER_FIELD_MAP}", level=20)
 dsf_logger.log_msg(f"PRE_FILTER_VALUES                  : {PRE_FILTER_VALUES}", level=20)
+dsf_logger.log_msg(f"VALIDATION_FILTER_VALUES           : {VALIDATION_FILTER_VALUES}", level=20)
+if VALIDATION_FILTER_VALUES and VALIDATION_FILTER_VALUES != PRE_FILTER_VALUES:
+    dsf_logger.log_msg(
+        "NOTE: VALIDATION_FILTER_VALUES is set and differs from PRE_FILTER_VALUES. "
+        "All messages consumed from the topic will be written to the output file. "
+        "Only messages matching VALIDATION_FILTER_VALUES count toward EXPECTED_COUNT. "
+        "Expect the output file's row count to exceed the validated count — see the "
+        "'Output summary' logged at acceptance for the exact numbers.",
+        level=30
+    )
 dsf_logger.log_msg(f"METADATA_COUNT_FIELD               : {METADATA_COUNT_FIELD}", level=20)
 if _location_tol is not None:
     dsf_logger.log_msg(
@@ -721,6 +797,14 @@ if METADATA_FILTER_COLUMNS and INPUT_FORMAT != "AVRO":
         f"WARNING: METADATA_FILTER_COLUMNS is set but INPUT_FORMAT is '{INPUT_FORMAT}'. "
         f"Metadata filtering is only applied when INPUT_FORMAT=AVRO. "
         f"All messages will pass through unfiltered.",
+        level=30
+    )
+
+if VALIDATION_FILTER_VALUES and INPUT_FORMAT != "AVRO":
+    dsf_logger.log_msg(
+        f"WARNING: VALIDATION_FILTER_VALUES is set but INPUT_FORMAT is '{INPUT_FORMAT}'. "
+        f"Validation filtering is only applied when INPUT_FORMAT=AVRO. "
+        f"All written messages will count toward validation.",
         level=30
     )
 
@@ -1104,8 +1188,8 @@ if (INPUT_FORMAT == "AVRO" and DECIMAL_CONV == "YES"):
 retry_deadline   = datetime.now() + timedelta(hours=MAX_LISTEN_DURATION_HOURS)
 RETRY_TS_UTC_END = datetime.timestamp(retry_deadline)
 attempt       = 0
-stable_streak  = 0     # consecutive at-or-above attempts with the same filtered_count
-prev_count     = None  # filtered_count from the previous attempt
+stable_streak  = 0     # consecutive at-or-above attempts with the same validation_count
+prev_count     = None  # validation_count from the previous attempt
 grace_extended = False # True after one deadline extension granted near target
 over_count_deadline: Optional[datetime] = None  # WAIT mode: set when count first exceeds expected
 
@@ -1154,6 +1238,7 @@ try:
                 os._exit(1)
 
         filtered_count = 0
+        validation_count = 0
         total_seen     = 0
         pre_filter_matched_count = 0
         # seen_combinations key = tuple of field values in METADATA_FILTER_COLUMNS order
@@ -1367,6 +1452,13 @@ try:
                     part_filtered += 1
                     filtered_count += 1
 
+                    # --- Track validation-count subset (defaults to counting everything written) ---
+                    if VALIDATION_FILTER_VALUES and raw_msg_dict is not None:
+                        if message_matches_filters(raw_msg_dict, VALIDATION_FILTER_VALUES):
+                            validation_count += 1
+                    else:
+                        validation_count += 1
+
                     # --- Apply decimal conversion on filtered message ---
                     msg_out = raw_msg_dict if raw_msg_dict is not None else {}
                     if INPUT_FORMAT == "AVRO" and DECIMAL_CONV == "YES" and cur_decattrs:
@@ -1422,17 +1514,19 @@ try:
 
         # End of partition loop for this attempt
         pre_filter_note = f", pre_filter_matched={pre_filter_matched_count}" if PRE_FILTER_VALUES else ""
+        validation_note = f", validation_matched={validation_count}" if VALIDATION_FILTER_VALUES else ""
         dsf_logger.log_msg(
             f"Attempt {attempt} complete: "
             f"total_messages_seen_in_window={total_seen}, "
             f"messages_matching_all_filters={filtered_count}"
-            f"{pre_filter_note}",
+            f"{pre_filter_note}"
+            f"{validation_note}",
             level=20
         )
 
-        # --- Count validation ---
+        # --- Count validation (validation_count == filtered_count when VALIDATION_FILTER_VALUES is unset) ---
         count_at_or_above = log_count_comparison(
-            EXPECTED_COUNT, filtered_count, METADATA_COUNT_TOLERANCE_PCT, METADATA_FILE_PATH
+            EXPECTED_COUNT, validation_count, METADATA_COUNT_TOLERANCE_PCT, METADATA_FILE_PATH
         )
 
         time_remaining = retry_deadline - datetime.now()
@@ -1441,6 +1535,18 @@ try:
         # Called from all accept paths — temp file must exist before calling.
         def _save_and_break(accept_msg: str, accept_level: int) -> None:
             dsf_logger.log_msg(accept_msg, level=accept_level)
+            dsf_logger.log_msg("Output summary:", level=20)
+            dsf_logger.log_msg(f"  Rows written to output file    : {filtered_count}", level=20)
+            dsf_logger.log_msg(f"  Rows counted for validation    : {validation_count}", level=20)
+            dsf_logger.log_msg(f"  Expected count (metadata)      : {EXPECTED_COUNT}", level=20)
+            if filtered_count != validation_count:
+                dsf_logger.log_msg(
+                    f"  NOTE: file row count ({filtered_count}) differs from the validated "
+                    f"count ({validation_count}) because VALIDATION_FILTER_VALUES="
+                    f"{VALIDATION_FILTER_VALUES} narrows which messages count toward "
+                    f"EXPECTED_COUNT — all consumed messages are still written to the file.",
+                    level=30
+                )
             if not os.path.exists(TEMP_DATA_FILE):
                 pathlib.Path(TEMP_DATA_FILE).touch()
                 dsf_logger.log_msg(
@@ -1460,7 +1566,7 @@ try:
                 feed_name=FEED_NAME,
                 reconciliation_group_id=str(filter_values.get("reconciliationGroupId", "")),
                 expected_count=EXPECTED_COUNT,
-                actual_count=filtered_count,
+                actual_count=validation_count,
                 tolerance_pct=METADATA_COUNT_TOLERANCE_PCT,
                 separator=SEPERATOR,
             )
@@ -1495,22 +1601,22 @@ try:
         if count_at_or_above:
             if OVER_COUNT_BEHAVIOR == "STABILITY":
                 # ── STABILITY mode: wait for count to stop changing ──────────────
-                if filtered_count == prev_count:
+                if validation_count == prev_count:
                     stable_streak += 1
                     dsf_logger.log_msg(
-                        f"Count stable at {filtered_count} for {stable_streak}/"
+                        f"Count stable at {validation_count} for {stable_streak}/"
                         f"{STABLE_COUNT_REQUIRED_ATTEMPTS} consecutive attempt(s).",
                         level=20
                     )
                 else:
                     stable_streak = 1
                     dsf_logger.log_msg(
-                        f"Count changed: {prev_count} → {filtered_count} "
+                        f"Count changed: {prev_count} → {validation_count} "
                         f"(>= expected {EXPECTED_COUNT}). Stability streak reset to 1/"
                         f"{STABLE_COUNT_REQUIRED_ATTEMPTS}.",
                         level=20
                     )
-                prev_count = filtered_count
+                prev_count = validation_count
 
                 if stable_streak == 1 and not grace_extended \
                         and time_remaining.total_seconds() < RETRY_WAIT_SECONDS:
@@ -1530,7 +1636,7 @@ try:
 
                 if stable_streak >= STABLE_COUNT_REQUIRED_ATTEMPTS:
                     _save_and_break(
-                        f"Count stable at {filtered_count} for {stable_streak} consecutive "
+                        f"Count stable at {validation_count} for {stable_streak} consecutive "
                         f"attempt(s) (expected {EXPECTED_COUNT}). Accepting.",
                         accept_level=20
                     )
@@ -1545,7 +1651,7 @@ try:
                     # Window exhausted — accept as-is (>= expected, stability unconfirmed)
                     _save_and_break(
                         f"Retry window exhausted after {attempt} attempt(s). "
-                        f"Count {filtered_count} >= expected {EXPECTED_COUNT} but stability not "
+                        f"Count {validation_count} >= expected {EXPECTED_COUNT} but stability not "
                         f"confirmed (streak {stable_streak}/{STABLE_COUNT_REQUIRED_ATTEMPTS}). "
                         f"Accepting final count.",
                         accept_level=30
@@ -1564,7 +1670,7 @@ try:
                         datetime.now() + timedelta(seconds=RETRY_WAIT_SECONDS)
                     ).strftime('%Y-%m-%d %H:%M:%S')
                     dsf_logger.log_msg(
-                        f"Count {filtered_count} >= expected {EXPECTED_COUNT}, "
+                        f"Count {validation_count} >= expected {EXPECTED_COUNT}, "
                         f"but stability streak {stable_streak}/{STABLE_COUNT_REQUIRED_ATTEMPTS} "
                         f"not yet met. Time remaining: {hours_remaining:.2f}h. "
                         f"Sleeping {RETRY_WAIT_SECONDS}s. Next attempt at: {next_attempt_at}",
@@ -1575,10 +1681,10 @@ try:
 
             else:
                 # ── WAIT mode: fixed window once count exceeds expected ───────────
-                if filtered_count == EXPECTED_COUNT:
+                if validation_count == EXPECTED_COUNT:
                     # Exact match — accept immediately, no timer needed
                     _save_and_break(
-                        f"Count exactly matches expected ({filtered_count}). Accepting immediately.",
+                        f"Count exactly matches expected ({validation_count}). Accepting immediately.",
                         accept_level=20
                     )
                     DATA_CONSUME = "Yes"
@@ -1598,7 +1704,7 @@ try:
                             retry_deadline   = over_count_deadline
                             RETRY_TS_UTC_END = datetime.timestamp(retry_deadline)
                         dsf_logger.log_msg(
-                            f"Count EXCEEDS expected: got {filtered_count:,}, expected {EXPECTED_COUNT:,}. "
+                            f"Count EXCEEDS expected: got {validation_count:,}, expected {EXPECTED_COUNT:,}. "
                             f"WAIT mode: starting {OVER_COUNT_WAIT_MINUTES}-min window. "
                             f"Will accept at {over_count_deadline.strftime('%Y-%m-%d %H:%M:%S')} regardless of further changes. "
                             f"(To use stability streak instead: set OVER_COUNT_BEHAVIOR=STABILITY)",
@@ -1606,26 +1712,26 @@ try:
                         )
                     else:
                         secs_left = max(0.0, (over_count_deadline - datetime.now()).total_seconds())
-                        if filtered_count != prev_count:
+                        if validation_count != prev_count:
                             dsf_logger.log_msg(
-                                f"Count grew: {prev_count:,} → {filtered_count:,} "
+                                f"Count grew: {prev_count:,} → {validation_count:,} "
                                 f"(expected {EXPECTED_COUNT:,}). "
                                 f"Timer unchanged — {secs_left:.0f}s remaining until acceptance.",
                                 level=20
                             )
                         else:
                             dsf_logger.log_msg(
-                                f"Count stable at {filtered_count:,} (over expected {EXPECTED_COUNT:,}). "
+                                f"Count stable at {validation_count:,} (over expected {EXPECTED_COUNT:,}). "
                                 f"{secs_left:.0f}s remaining until acceptance.",
                                 level=20
                             )
 
-                    prev_count = filtered_count
+                    prev_count = validation_count
 
                     if datetime.now() >= over_count_deadline:
                         _save_and_break(
                             f"Over-count wait window of {OVER_COUNT_WAIT_MINUTES} min expired. "
-                            f"Accepting final count {filtered_count:,} (expected {EXPECTED_COUNT:,}).",
+                            f"Accepting final count {validation_count:,} (expected {EXPECTED_COUNT:,}).",
                             accept_level=20
                         )
                         DATA_CONSUME = "Yes"
@@ -1650,17 +1756,17 @@ try:
 
         else:
             # Under expected — never accept early; wait for more messages or exhaustion
-            prev_count    = filtered_count
+            prev_count    = validation_count
             stable_streak = 0  # reset in case count dropped back below expected
 
             if time_remaining.total_seconds() <= 0:
                 # Exhausted — final lower-tolerance check
                 low = EXPECTED_COUNT - EXPECTED_COUNT * METADATA_COUNT_TOLERANCE_PCT / 100.0
-                if filtered_count >= low:
+                if validation_count >= low:
                     # Temp file still exists (not deleted yet) — promote it
                     _save_and_break(
                         f"Retry window exhausted after {attempt} attempt(s). "
-                        f"Final count {filtered_count} is within lower tolerance "
+                        f"Final count {validation_count} is within lower tolerance "
                         f"({int(low)}–{EXPECTED_COUNT}, ±{METADATA_COUNT_TOLERANCE_PCT}%). "
                         f"Accepting.",
                         accept_level=30
@@ -1684,7 +1790,7 @@ try:
                         )
                     dsf_logger.log_msg(
                         f"Retry window exhausted after {attempt} attempt(s). "
-                        f"Final count {filtered_count} is BELOW lower tolerance threshold "
+                        f"Final count {validation_count} is BELOW lower tolerance threshold "
                         f"{int(low)} (expected {EXPECTED_COUNT}, "
                         f"±{METADATA_COUNT_TOLERANCE_PCT}%). Failing.",
                         level=40
@@ -1698,9 +1804,9 @@ try:
                     write_get_kafka_validation_log(
                         GET_KAFKA_VALIDATION_LOG, username, ASOF_DT, DSF_MANDATOR, FEED_NAME,
                         str(filter_values.get("reconciliationGroupId", "")),
-                        EXPECTED_COUNT, filtered_count, METADATA_COUNT_TOLERANCE_PCT,
+                        EXPECTED_COUNT, validation_count, METADATA_COUNT_TOLERANCE_PCT,
                         SEPERATOR, "FAILED",
-                        f"COUNT_BELOW_TOLERANCE: expected={EXPECTED_COUNT} actual={filtered_count} tolerance_lower={int(low)}",
+                        f"COUNT_BELOW_TOLERANCE: expected={EXPECTED_COUNT} actual={validation_count} tolerance_lower={int(low)}",
                     )
                     os._exit(1)
 
@@ -1711,7 +1817,7 @@ try:
                     datetime.now() + timedelta(seconds=RETRY_WAIT_SECONDS)
                 ).strftime('%Y-%m-%d %H:%M:%S')
                 dsf_logger.log_msg(
-                    f"Under-count on attempt {attempt}: got {filtered_count}, "
+                    f"Under-count on attempt {attempt}: got {validation_count}, "
                     f"expected {EXPECTED_COUNT}. "
                     f"Time remaining: {hours_remaining:.2f}h. "
                     f"Sleeping {RETRY_WAIT_SECONDS}s. "

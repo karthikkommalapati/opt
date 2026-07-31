@@ -155,7 +155,8 @@ Example: expected=1000, tolerance=10%  →  floor = 900
 ```
 
 **`PRE_FILTER_VALUES`** — additional field filter applied on top of the metadata-driven
-filter above, evaluated per message in `message_matches_filters`.
+filter above, evaluated per message in `message_matches_filters`. A message that doesn't
+match is dropped entirely: not written to the output file, and not counted anywhere.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
@@ -166,6 +167,91 @@ filter above, evaluated per message in `message_matches_filters`.
 ```
 Passes messages where `timelines` is `EOD` or `ITD`. Field names support dot-notation
 for nested fields (e.g. `"status.timeline"`).
+
+> **Config keys are case-insensitive.** Field-name keys in `PRE_FILTER_VALUES` (and
+> `VALIDATION_FILTER_VALUES` below) are lowercased when the config loads, so
+> `"TIMELINES"` and `"timelines"` behave identically. This exists because the actual
+> message field name comes from the Avro schema and is typically lowercase — you can
+> write the config key in whichever case your team's convention prefers.
+>
+> **Values are also matched case-insensitively.** `message_matches_filters` uppercases
+> both the config's expected value and the message's actual value before comparing, so
+> `"EOD"` in config matches `"eod"`, `"Eod"`, `"EOD"`, etc. in the message. Pick one case
+> for your config (uppercase is the convention used throughout this doc) — the actual
+> data can be any case and will still match.
+
+> **Empty-string values do NOT disable a filter.** `{"timelines": ""}` does not mean
+> "no filter" — it means "only match messages where `timelines` is itself an empty
+> string," which silently excludes every message with a real value. The script logs a
+> startup `WARNING` if it detects this (`00_get_kafka.py:733-749`). To disable filtering
+> on a field, remove the key entirely (or set the whole filter to `{}`).
+
+> **Config shape is validated at startup.** `PRE_FILTER_VALUES` and
+> `VALIDATION_FILTER_VALUES` must each be a JSON object whose values are a single
+> string/number or a list of strings/numbers — not a nested object, not a list of
+> objects. An invalid shape hard-exits (code 9) with a `CONFIG ERROR` log message and
+> format examples, instead of crashing with a raw traceback or silently matching
+> nothing. See `load_and_validate_filter_config()` (`00_get_kafka.py:288-322`).
+
+**`VALIDATION_FILTER_VALUES`** — a second, independent filter that controls only what
+counts toward the expected-count validation, not what gets written to the output file.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `VALIDATION_FILTER_VALUES` | object — `{field: value or [values]}` | `{}` | Same shape/matching rules as `PRE_FILTER_VALUES`. When empty, every written message counts toward validation (today's behavior). When set, only messages matching it are counted toward `EXPECTED_COUNT` — but every message is still written to the output file |
+
+**Why this exists:** `PRE_FILTER_VALUES` filters what's written to the file — if a
+message doesn't match, it's dropped and never seen again. Sometimes you want the
+opposite: collect *every* message from the topic into the output file, but only
+validate the count against a subset (e.g. "collect everything, but the expected count
+of 1000 only applies to `timelines=EOD/ITD`, not other timeline values also on the
+topic").
+
+```json
+"PRE_FILTER_VALUES": {},
+"VALIDATION_FILTER_VALUES": {"timelines": ["EOD", "ITD"]}
+```
+All messages on the topic are written to the `.par` file. Of those, only ones where
+`timelines` is `EOD` or `ITD` count toward matching `EXPECTED_COUNT`.
+
+> **Interaction warning:** `PRE_FILTER_VALUES` runs first in the per-message loop and
+> drops non-matching messages before `VALIDATION_FILTER_VALUES` ever sees them. If both
+> are set with *different* criteria, `VALIDATION_FILTER_VALUES` only ever evaluates
+> messages that already survived `PRE_FILTER_VALUES` — the effective validation count is
+> the intersection of both filters, not `VALIDATION_FILTER_VALUES` alone. In practice:
+> leave `PRE_FILTER_VALUES` empty on any topic where you're using
+> `VALIDATION_FILTER_VALUES` for different criteria.
+
+Internally this is `filtered_count` vs `validation_count`: `filtered_count` (incremented
+at the point each message is written) is purely a "how many rows landed in the file"
+tally used only in logging. `validation_count` (incremented right after, matched against
+`VALIDATION_FILTER_VALUES` or unconditionally if it's empty) is the number actually
+compared against `EXPECTED_COUNT` throughout the retry/stability/tolerance logic. They
+are equal unless `VALIDATION_FILTER_VALUES` is set.
+
+**Log visibility — two places make the row-count/validation-count split obvious:**
+
+1. **Startup banner** (`00_get_kafka.py:757-764`) — fires only when `VALIDATION_FILTER_VALUES`
+   is set and differs from `PRE_FILTER_VALUES`, warning upfront that the output file will
+   contain more rows than the validated count:
+   ```
+   NOTE: VALIDATION_FILTER_VALUES is set and differs from PRE_FILTER_VALUES. All messages
+   consumed from the topic will be written to the output file. Only messages matching
+   VALIDATION_FILTER_VALUES count toward EXPECTED_COUNT. Expect the output file's row
+   count to exceed the validated count — see the 'Output summary' logged at acceptance
+   for the exact numbers.
+   ```
+2. **Output summary at acceptance** (`00_get_kafka.py:1536-1548`) — logged every time a run
+   is accepted, with an explicit NOTE line whenever the two counts diverge:
+   ```
+   Output summary:
+     Rows written to output file    : 1300
+     Rows counted for validation    : 1000
+     Expected count (metadata)      : 1000
+     NOTE: file row count (1300) differs from the validated count (1000) because
+     VALIDATION_FILTER_VALUES={'timelines': ['EOD', 'ITD']} narrows which messages
+     count toward EXPECTED_COUNT — all consumed messages are still written to the file.
+   ```
 
 ---
 
@@ -445,6 +531,59 @@ streak=1 and accept with a warning. With it, it gets a clean stable acceptance.
 
 ---
 
+### Scenario 12 — Collect everything, validate a subset (`VALIDATION_FILTER_VALUES`)
+
+**Setup:** Topic carries messages with `timelines` in `EOD`, `ITD`, and `RTD`. Expected
+count from metadata = 1000, and that 1000 only accounts for `EOD`/`ITD` messages —
+`RTD` messages are unrelated volume that still needs to land in the output file.
+
+```json
+"PRE_FILTER_VALUES": {},
+"VALIDATION_FILTER_VALUES": {"timelines": ["EOD", "ITD"]}
+```
+
+```
+1300 messages arrive total: 1000 are EOD/ITD, 300 are RTD.
+
+Attempt 1: filtered_count = 1300 (all written)
+           validation_count = 1000 (only EOD/ITD counted)
+  → 1000 >= 1000 (at or above expected) → STABILITY: streak = 1
+
+Attempt 2: filtered_count = 1300, validation_count = 1000 (stable)
+  → streak = 2 → ACCEPT ✓
+
+Output file contains all 1300 messages.
+Validation log records actual_count = 1000 (matches expected).
+```
+
+**Log you will see:**
+```
+NOTE: VALIDATION_FILTER_VALUES is set and differs from PRE_FILTER_VALUES. All messages
+consumed from the topic will be written to the output file. Only messages matching
+VALIDATION_FILTER_VALUES count toward EXPECTED_COUNT. Expect the output file's row
+count to exceed the validated count — see the 'Output summary' logged at acceptance
+for the exact numbers.
+...
+Attempt 1 complete: total_messages_seen_in_window=1300, messages_matching_all_filters=1300, validation_matched=1000
+Count stable at 1,000 for 1/2 consecutive attempt(s).
+Count stable at 1,000 for 2/2 consecutive attempt(s).
+Count stable at 1,000 for 2 consecutive attempt(s) (expected 1,000). Accepting.
+Output summary:
+  Rows written to output file    : 1300
+  Rows counted for validation    : 1000
+  Expected count (metadata)      : 1000
+  NOTE: file row count (1300) differs from the validated count (1000) because
+  VALIDATION_FILTER_VALUES={'timelines': ['EOD', 'ITD']} narrows which messages count
+  toward EXPECTED_COUNT — all consumed messages are still written to the file.
+```
+
+Contrast with leaving `VALIDATION_FILTER_VALUES` empty: `validation_count` would equal
+`filtered_count` (1300), which would never match `EXPECTED_COUNT=1000` and the run would
+under- or over-count depending on tolerance — this is exactly the case
+`VALIDATION_FILTER_VALUES` is meant to avoid.
+
+---
+
 ## Quick reference — which setting to change
 
 | I want to... | Change this |
@@ -458,3 +597,5 @@ streak=1 and accept with a warning. With it, it gets a clean stable acceptance.
 | Exit cleanly when no data | Set `ALLOW_NO_DATA=YES` |
 | Fail hard when no data | Set `ALLOW_NO_DATA=NO` |
 | Sleep shorter between retries | Decrease `RETRY_WAIT_SECONDS` |
+| Drop non-matching messages from the output file entirely | `PRE_FILTER_VALUES` |
+| Collect every message but validate the count against only a subset | `VALIDATION_FILTER_VALUES` (leave `PRE_FILTER_VALUES` empty) |

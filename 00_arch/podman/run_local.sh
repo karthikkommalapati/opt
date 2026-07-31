@@ -35,7 +35,7 @@ export DSF_MAIN_ID="1001"
 # SDA-prefixed vars (pattern: {SDA}_ASOF_DT etc.)
 export TEST_ASOF_DT="$ASOF_DT"
 export TEST_ITERATION_NR="1"
-export TEST_KNW_FRO_TS="${ASOF_DT}T00:00:00+0000"
+export TEST_KNW_FRO_TS="$(date -u +%Y-%m-%d-%H.%M.%S)"
 export TEST_USR_VAL="0"
 
 # Path vars
