@@ -172,6 +172,7 @@ The script stops when either limit is reached, whichever comes first.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `ALLOW_NO_DATA` | string | `"YES"` | `"YES"` = exit cleanly with no output if no messages found. `"NO"` = fail hard |
+| `ALLOW_ZERO_MESSAGES_PUBLISHED` | string | `"NO"` | `"YES"` = accept a status message reporting `total_messages_published=0` and write metadata normally. `"NO"` = hard-exit on a zero total (existing behaviour) |
 | `WAIT_FOR_SUBMIT` | string | `"NO"` | `"YES"` = wait for upstream submit signal before starting to consume |
 | `STREAMING_VERBOSE` | string bool | `"True"` | `"True"` = detailed logging. `"False"` = minimal |
 | `STREAMING_STORE_MIDLAYER` | string bool | `"False"` | `"True"` = store intermediate mid-layer data alongside final output |
@@ -454,6 +455,50 @@ hard fails immediately, same as `SEQUENTIAL` mode's duplicate check.
 
 ---
 
+### Scenario 12 — `ALLOW_ZERO_MESSAGES_PUBLISHED = "YES"` (legitimate zero-message day)
+
+**Setup:** Mandator `022` has no business messages to publish today. Both instances
+still publish their status message as normal, just with `numberOfMessagesPublished=0`.
+`totalInstances=2`.
+
+```
+Topic messages (producer=CLIENT_STRUCTURES, reconciliationGroupId=7):
+  Instance 0: instanceIndex=0, numberOfMessagesPublished=0
+  Instance 1: instanceIndex=1, numberOfMessagesPublished=0
+
+Instance validation (SEQUENTIAL mode): {0,1} present, {0,1} expected → PASS ✓
+total_messages_published = sum(numberOfMessagesPublished) = 0
+```
+
+**With `ALLOW_ZERO_MESSAGES_PUBLISHED = "NO"` (default):**
+```
+write_validation_metadata() → total_messages_published == 0 → hard-exit ✗
+Log: "METADATA ERROR: total_messages_published is 0 — all instances reported zero
+messages published"
+Exit code: 1 — no metadata file written
+```
+
+**With `ALLOW_ZERO_MESSAGES_PUBLISHED = "YES"`:**
+```
+write_validation_metadata() → total_messages_published == 0 and allow_zero_published
+  → accepted
+Log: "total_messages_published is 0 — accepted (ALLOW_ZERO_MESSAGES_PUBLISHED=YES)"
+Metadata file written normally: total_messages_published=0
+Exit code: 0 ✓
+```
+
+**Downstream effect on `00_get_kafka.py`:** the metadata file now carries
+`EXPECTED_COUNT=0`. See Scenario 14 in `GET_KAFKA_HOW_TO.md` for how that script
+handles `expected=0` on its side (fast-accept whether or not any business messages
+actually show up).
+
+**Config:**
+```json
+"ALLOW_ZERO_MESSAGES_PUBLISHED": "YES"
+```
+
+---
+
 ## Quick reference — which setting to change
 
 | I want to... | Change this |
@@ -468,6 +513,7 @@ hard fails immediately, same as `SEQUENTIAL` mode's duplicate check.
 | Limit retries to a fixed number | Set `MAX_RETRY_ATTEMPTS` to that number |
 | Exit cleanly when no data arrives | Set `ALLOW_NO_DATA = "YES"` |
 | Fail when no data arrives | Set `ALLOW_NO_DATA = "NO"` |
+| Accept a status message reporting `total_messages_published=0` | Set `ALLOW_ZERO_MESSAGES_PUBLISHED = "YES"` |
 | Control how often offsets are committed | Adjust `COMMIT_CNT` |
 | Control where the metadata file is written | Set `METADATA_OUTPUT_PATH` |
 | Change the expected count tolerance | `METADATA_COUNT_TOLERANCE_PCT` or `LOCATION_TOLERANCE_PCT` |

@@ -124,6 +124,7 @@ how many messages to expect and which field values to filter on.
 | `METADATA_COUNT_FIELD` | string | `"total_messages_published"` | Field in the metadata file that holds the expected message count |
 | `METADATA_FILTER_COLUMNS` | list | `["mandatorCode","businessDate","reconciliationGroupId"]` | Fields in the **business messages** used to filter which messages to count |
 | `METADATA_FILTER_FIELD_MAP` | object | see below | Maps field names in the **status message** to field names in the **business message** |
+| `METADATA_FILTER_ALLOW_NULL_FIELDS` | list | `[]` | `METADATA_FILTER_COLUMNS` fields allowed to be null/missing on a message without excluding it — see below |
 | `METADATA_COUNT_TOLERANCE_PCT` | string float | `"10"` | Percentage by which actual count may fall below expected and still be accepted |
 | `LOCATION_TOLERANCE_PCT` | object | `{"022": "10"}` | Per-mandator override for `METADATA_COUNT_TOLERANCE_PCT` |
 
@@ -139,6 +140,28 @@ Left side = field name in the status message. Right side = field name in the bus
 message. The script reads filter values from the status message and then applies them
 to the business messages.
 
+**`METADATA_FILTER_ALLOW_NULL_FIELDS`** — normally, if a `METADATA_FILTER_COLUMNS` field
+is null or missing on a business message, `message_matches_filters` excludes the entire
+message (never written to the output file). This is a problem for producers that
+legitimately publish intraday (`ITD`) messages with no `reconciliationGroupId` at all —
+those messages were being silently dropped rather than "having no group."
+
+```json
+"METADATA_FILTER_COLUMNS": ["mandatorCode", "businessDate", "reconciliationGroupId"],
+"METADATA_FILTER_ALLOW_NULL_FIELDS": ["reconciliationGroupId"]
+```
+With this set, a null/missing `reconciliationGroupId` no longer excludes the message —
+`mandatorCode` and `businessDate` still must match exactly and non-null. The message is
+written to the output file.
+
+**Critically, this only relaxes what gets *written*, not what gets *counted*.** The
+`validation_count` logic (see `VALIDATION_FILTER_VALUES` just below) always re-checks the
+message against the full, unrelaxed `filter_values` — so a message let through only
+because of `METADATA_FILTER_ALLOW_NULL_FIELDS` is written to the file but never
+increments `validation_count`, and therefore never affects the `EXPECTED_COUNT`
+comparison. This holds whether `VALIDATION_FILTER_VALUES` and `PRE_FILTER_VALUES` are set
+or left empty — the strict re-check is independent of both.
+
 **`LOCATION_TOLERANCE_PCT` overrides `METADATA_COUNT_TOLERANCE_PCT`:**
 If a mandator appears in `LOCATION_TOLERANCE_PCT`, that value is used instead.
 ```json
@@ -153,6 +176,22 @@ Example: expected=1000, tolerance=10%  →  floor = 900
   actual=950 → 950 >= 900 → ACCEPT (within tolerance)
   actual=850 → 850 < 900  → FAIL   (below tolerance)
 ```
+
+**Special case — `EXPECTED_COUNT == 0`:** the floor formula divides by `expected_count`,
+which doesn't work at `0`. `log_count_comparison()` (~line 330-358) handles this
+explicitly instead:
+
+```text
+expected=0, actual=0  →  EXACT MATCH, accept immediately
+expected=0, actual>0  →  accept too — "no minimum required when expected count is 0"
+```
+
+Both cases return "at or above" and still go through the normal
+`STABLE_COUNT_REQUIRED_ATTEMPTS` stability check before committing — so `expected=0,
+actual>0` isn't instant, but it's bounded by the stability window (a few
+`RETRY_WAIT_SECONDS`), not the full `MAX_LISTEN_DURATION_HOURS`. See Scenario 14 below
+for the full trade-off and when this fast-accept is (and isn't) the right behaviour for
+a given feed.
 
 **`PRE_FILTER_VALUES`** — additional field filter applied on top of the metadata-driven
 filter above, evaluated per message in `message_matches_filters`. A message that doesn't
@@ -584,6 +623,95 @@ under- or over-count depending on tolerance — this is exactly the case
 
 ---
 
+### Scenario 13 — Consume intraday messages with a null `reconciliationGroupId`, uncounted (`METADATA_FILTER_ALLOW_NULL_FIELDS`)
+
+**Setup:** Metadata says `reconciliationGroupId=1`, expected count = 1000 (all 1000
+belong to group 1). The same topic also carries `ITD` messages that were published with
+no `reconciliationGroupId` at all — those must still land in the output file for the
+splitter, but must not be counted toward the 1000.
+
+```json
+"METADATA_FILTER_COLUMNS": ["mandatorCode", "businessDate", "reconciliationGroupId"],
+"METADATA_FILTER_ALLOW_NULL_FIELDS": ["reconciliationGroupId"],
+"PRE_FILTER_VALUES": {"timelines": ["EOD", "ITD"]},
+"VALIDATION_FILTER_VALUES": {"timelines": ["EOD", "ITD"]}
+```
+
+```
+1050 messages arrive total: 1000 have reconciliationGroupId=1, 50 have no
+reconciliationGroupId at all (both sets pass PRE_FILTER_VALUES timelines=ITD).
+
+Write-gate (relaxed): all 1050 pass — mandatorCode/businessDate match, and the
+null reconciliationGroupId on the 50 is explicitly allowed.
+  → filtered_count = 1050
+
+Validation-count (strict re-check, no null allowance): only the 1000 with
+reconciliationGroupId=1 satisfy VALIDATION_FILTER_VALUES AND the unrelaxed
+filter_values match.
+  → validation_count = 1000
+
+Attempt 1: validation_count = 1000 == EXPECTED_COUNT → exact match → ACCEPT immediately.
+
+Output file contains all 1050 messages.
+Validation log records actual_count = 1000 (matches expected exactly).
+```
+
+**Why `validation_count` still lands on exactly 1000 and not 1050:** the write-gate call
+passes `allow_null_fields=METADATA_FILTER_ALLOW_NULL_FIELDS`, so a null
+`reconciliationGroupId` doesn't exclude the message from the file. The `validation_count`
+block calls `message_matches_filters` a second time on the same `filter_values` *without*
+`allow_null_fields` — so those same 50 messages fail that check (null
+`reconciliationGroupId` != `1`) and are never added to `validation_count`. This holds
+regardless of whether `PRE_FILTER_VALUES`/`VALIDATION_FILTER_VALUES` are populated or
+left empty — the strict re-check only depends on `filter_values`, which always comes
+from `METADATA_FILTER_COLUMNS`/`METADATA_FILTER_FIELD_MAP`.
+
+**Downstream note:** `filter_recon_group.py` (the plugin step that runs after this
+script, before the splitter) has matching behavior — it writes null-`reconciliationGroupId`
+records through to its output rather than dropping them, and also keeps them out of its
+own `matched_count`/count check. See `00_plugins/PLUGIN_TESTING.md`, Scenario E.
+
+---
+
+### Scenario 14 — `EXPECTED_COUNT = 0`, fast-accept (`ALLOW_ZERO_MESSAGES_PUBLISHED` upstream)
+
+**Setup:** Mandator `022` had nothing to publish today. Upstream,
+`kafka_trigger_status_messages.py` ran with `ALLOW_ZERO_MESSAGES_PUBLISHED = "YES"` and
+wrote metadata with `total_messages_published=0`, so `EXPECTED_COUNT=0` here.
+`STABLE_COUNT_REQUIRED_ATTEMPTS=2`, `RETRY_WAIT_SECONDS=5`.
+
+**Case A — no business messages ever arrive (the common case):**
+```
+Attempt 1: actual=0 → expected=0, actual=0 → EXACT MATCH → streak=1
+Attempt 2: actual=0 → streak=2 → ACCEPT ✓ (~10s total)
+```
+
+**Case B — a small number of stray/unrelated messages exist (e.g. a late reprocess,
+not more data to come):**
+```
+Attempt 1: actual=3 → expected=0, actual>0 → accept ("no minimum required"), streak=1
+Attempt 2: actual=3 (unchanged) → streak=2 → ACCEPT ✓, commits offsets, writes 3 rows
+```
+Same ~10s turnaround as Case A — no full-window wait, because there's no minimum count
+to wait for when `expected=0`.
+
+**Case C — real messages are still trickling in when this job starts (the risky case):**
+```
+Attempt 1: actual=1 → accept path, streak=1
+Attempt 2: actual=1 (no new message yet) → streak=2 → ACCEPT ✓, commits, finalizes
+[10 seconds later] 40 more messages arrive → NEVER SEEN by this run — already exited
+```
+This is the trade-off documented in `CHANGES.md` (2026-08-14 entry): fast-accept assumes
+that once the upstream status-message trigger has fired, anything arriving afterward is
+out of scope for this run — it does **not** guarantee "waited long enough to see
+everything that was ever going to show up." If a feed can have `EXPECTED_COUNT=0` *and*
+a real trickle of messages that matters, fast-accept will under-collect it. That
+combination wasn't the case for the feed this was built for (operationally, nothing
+after status-message completion is expected to matter) — confirm that holds for any new
+feed before relying on `ALLOW_ZERO_MESSAGES_PUBLISHED` + this fast-accept together.
+
+---
+
 ## Quick reference — which setting to change
 
 | I want to... | Change this |
@@ -594,8 +722,10 @@ under- or over-count depending on tolerance — this is exactly the case
 | Check count stability more times | Increase `STABLE_COUNT_REQUIRED_ATTEMPTS` |
 | Use a fixed wait window when over-count | Set `OVER_COUNT_BEHAVIOR=WAIT` and `OVER_COUNT_WAIT_MINUTES` |
 | Accept immediately on exact match | Already the default in WAIT mode |
+| Handle a status message that legitimately reports 0 expected messages | Upstream: `ALLOW_ZERO_MESSAGES_PUBLISHED="YES"` in `status_messages_config.json`. This script then fast-accepts `EXPECTED_COUNT=0` automatically — nothing to set here |
 | Exit cleanly when no data | Set `ALLOW_NO_DATA=YES` |
 | Fail hard when no data | Set `ALLOW_NO_DATA=NO` |
 | Sleep shorter between retries | Decrease `RETRY_WAIT_SECONDS` |
 | Drop non-matching messages from the output file entirely | `PRE_FILTER_VALUES` |
 | Collect every message but validate the count against only a subset | `VALIDATION_FILTER_VALUES` (leave `PRE_FILTER_VALUES` empty) |
+| Consume messages with a null/missing filter field (e.g. `reconciliationGroupId`) instead of dropping them, without inflating `EXPECTED_COUNT` | `METADATA_FILTER_ALLOW_NULL_FIELDS` |
