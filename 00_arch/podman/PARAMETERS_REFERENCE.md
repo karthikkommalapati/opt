@@ -106,24 +106,24 @@ The metadata filename is built the same way on both sides:
 
 ### 4.1 Kafka Connection
 
-| Parameter | Type | Example | Description |
-|---|---|---|---|
-| `KAFKA_USER` | object, keyed by mandator | `{"022": "local"}` | Kafka username |
-| `STREAMING_KAFKA_BROKER` | object, keyed by mandator | `{"022": "localhost:9092"}` | Broker address |
-| `STREAMING_KAFKA_INFLOW_TOPIC` | object, keyed by mandator | `{"022": "inflow-topic"}` | Topic to consume **status** messages from |
+| Parameter | Type | Example | Config File | Description |
+|---|---|---|---|---|
+| `KAFKA_USER` | object, keyed by mandator | `{"022": "local"}` | `status_messages_config.json` | Kafka username |
+| `STREAMING_KAFKA_BROKER` | object, keyed by mandator | `{"022": "localhost:9092"}` | `status_messages_config.json` | Broker address |
+| `STREAMING_KAFKA_INFLOW_TOPIC` | object, keyed by mandator | `{"022": "inflow-topic"}` | `status_messages_config.json` | Topic to consume **status** messages from |
 
 All three are mandator-specific; the mandator is injected at runtime via the
 `DSF_MANDATOR` environment variable.
 
 ### 4.2 Avro / Schema Registry
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `AVRO_SCHEMA_REGISTRY` | string | — | Schema registry address, e.g. `localhost:8081` |
-| `AVRO_SCHEMA_FILE` (also accepted as `AVRO_SHCEMA_FILE`) | string | `"LATEST"` | Schema version. `"LATEST"` auto-fetches the newest version |
-| `AVRO_COLUMNS` | string (comma list) | `""` | Columns to extract. Empty = extract all |
-| `INPUT_DATA` | string | `"AVRO"` | Format of messages on the topic |
-| `OUTPUT_DATA` | string | `"JSON"` | Format of the output file written to disk |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `AVRO_SCHEMA_REGISTRY` | string | — | `status_messages_config.json` | Schema registry address, e.g. `localhost:8081` |
+| `AVRO_SCHEMA_FILE` (also accepted as `AVRO_SHCEMA_FILE`) | string | `"LATEST"` | `status_messages_config.json` | Schema version. `"LATEST"` auto-fetches the newest version |
+| `AVRO_COLUMNS` | string (comma list) | `""` | `status_messages_config.json` | Columns to extract. Empty = extract all |
+| `INPUT_DATA` | string | `"AVRO"` | `status_messages_config.json` | Format of messages on the topic |
+| `OUTPUT_DATA` | string | `"JSON"` | `status_messages_config.json` | Format of the output file written to disk |
 
 > **Typo note:** the framework config key is spelled `AVRO_SHCEMA_FILE`. The script
 > accepts both spellings; `AVRO_SCHEMA_FILE` is the preferred one going forward.
@@ -132,12 +132,12 @@ All three are mandator-specific; the mandator is injected at runtime via the
 
 The script only reads status messages whose Kafka timestamp falls inside a configured window.
 
-| Parameter | Type | Example | Description |
-|---|---|---|---|
-| `START_TS` | `HH:MM:SS` string | `"23:59:00"` | Time-of-day for window start |
-| `START_DT_OFFSET` | string integer | `"0"` | Days subtracted from `ASOF_DT` for the start date |
-| `STOP_TS` | `HH:MM:SS` string | `"00:00:00"` | Time-of-day for window end |
-| `STOP_DT_OFFSET` | string integer | `"-1"` | Days subtracted from `ASOF_DT` for the end date |
+| Parameter | Type | Example | Config File | Description |
+|---|---|---|---|---|
+| `START_TS` | `HH:MM:SS` string | `"23:59:00"` | `status_messages_config.json` | Time-of-day for window start |
+| `START_DT_OFFSET` | string integer | `"0"` | `status_messages_config.json` | Days subtracted from `ASOF_DT` for the start date |
+| `STOP_TS` | `HH:MM:SS` string | `"00:00:00"` | `status_messages_config.json` | Time-of-day for window end |
+| `STOP_DT_OFFSET` | string integer | `"-1"` | `status_messages_config.json` | Days subtracted from `ASOF_DT` for the end date |
 
 **Per-mandator override:**
 
@@ -163,21 +163,21 @@ one-minute publication window around midnight of the business date.
 
 ### 4.4 Output Format
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `SEPERATOR` *(spelling intentional — matches framework config key)* | string | `"\|"` | Column delimiter in the output file |
-| `DECIMAL_CONV` | string | `"2"` | `"2"` = disabled. `"YES"` = convert to fixed decimal |
-| `DECIMAL_SCALE` | string integer | `"2"` | Decimal places when `DECIMAL_CONV="YES"` |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `SEPERATOR` *(spelling intentional — matches framework config key)* | string | `"\|"` | `status_messages_config.json` | Column delimiter in the output file |
+| `DECIMAL_CONV` | string | `"2"` | `status_messages_config.json` | `"2"` = disabled. `"YES"` = convert to fixed decimal |
+| `DECIMAL_SCALE` | string integer | `"2"` | `status_messages_config.json` | Decimal places when `DECIMAL_CONV="YES"` |
 
 ### 4.5 Message Filtering & Instance Validation
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `PRODUCER_FILTER` | string | `"CLIENT_STRUCTURES"` | Only process status messages from this producer. Empty = accept all |
-| `VALIDATE_TOPIC_MANDATOR` | string | `"NO"` | `"YES"` = verify the topic actually contains data for the expected mandator first |
-| `STREAMING_MANDATORY_KEY` | string | `""` | A field that must be present on every message. Empty = no check |
-| `VALIDATION_REQUIRED_COLUMNS` | string (comma list) | — | Columns that must be present in the output; validates schema completeness |
-| `INSTANCE_VALIDATION_MODE` 🆕 | string, `"SEQUENTIAL"` \| `"UNIQUE_COUNT"` | `"SEQUENTIAL"` | How "all instances reported in" is decided — see below |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `PRODUCER_FILTER` | string | `"CLIENT_STRUCTURES"` | `status_messages_config.json` | Only process status messages from this producer. Empty = accept all |
+| `VALIDATE_TOPIC_MANDATOR` | string | `"NO"` | `status_messages_config.json` (also in `get_kafka_config.json`) | `"YES"` = verify the topic actually contains data for the expected mandator first |
+| `STREAMING_MANDATOR_KEY` *(note: no "Y" — not `STREAMING_MANDATORY_KEY`)* | string | `""` | `status_messages_config.json` (also in `get_kafka_config.json`) | A field that must be present on every message. Empty = no check |
+| `VALIDATION_REQUIRED_COLUMNS` | string (comma list) | — | `status_messages_config.json` | Columns that must be present in the output; validates schema completeness. Not currently set in the repo's config — running on the code default |
+| `INSTANCE_VALIDATION_MODE` 🆕 | string, `"SEQUENTIAL"` \| `"UNIQUE_COUNT"` | `"SEQUENTIAL"` | `status_messages_config.json` | How "all instances reported in" is decided — see below |
 
 **`PRODUCER_FILTER`** — status messages carry a `producer` field. Only messages where
 `producer == PRODUCER_FILTER` are counted and written. This lets multiple producers
@@ -218,16 +218,16 @@ Omit the key (or set `"SEQUENTIAL"`) to keep the original 0-based range-check be
 
 ### 4.6 Retry & Timing
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `MAX_LISTEN_DURATION_HOURS` | string float | `"2"` | Total time the script may run before giving up |
-| `MIN_LISTENING_DURATION_MINUTES` | string integer | — | Minimum listen time even if all data has already arrived |
-| `MAX_RETRY_ATTEMPTS` | string integer | `"0"` | `0` = unlimited (retry until deadline) |
-| `RETRY_WAIT_SECONDS` | string integer | `"300"` | Sleep between retry attempts |
-| `STREAMING_WAIT_UNTIL_DONE_HOURS` | string integer | `"1"` | Max hours to wait for the publisher's "done" signal |
-| `STREAMING_IDLE_TIMEOUT_MINUTES` | string integer | `"1"` | Stop consuming after this many minutes of silence |
-| `EXTEND_ON_ITERATE` | string | `"NO"` | `"YES"` = push the scan window's stop time forward on each retry |
-| `START_FROM_LAST` | string | `"NO"` | `"YES"` = resume from last committed offset instead of window start |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `MAX_LISTEN_DURATION_HOURS` | string float | `"2"` | `status_messages_config.json` | Total time the script may run before giving up |
+| `MIN_LISTENING_DURATION_MINUTES` | string integer | — | `status_messages_config.json` | Minimum listen time even if all data has already arrived |
+| `MAX_RETRY_ATTEMPTS` | string integer | `"0"` | `status_messages_config.json` | `0` = unlimited (retry until deadline). Not currently set in the repo's config — running on the code default |
+| `RETRY_WAIT_SECONDS` | string integer | `"300"` | `status_messages_config.json` | Sleep between retry attempts |
+| `STREAMING_WAIT_UNTIL_DONE_HOURS` | string integer | `"1"` | `status_messages_config.json` | Max hours to wait for the publisher's "done" signal |
+| `STREAMING_IDLE_TIMEOUT_MINUTES` | string integer | `"1"` | `status_messages_config.json` | Stop consuming after this many minutes of silence |
+| `EXTEND_ON_ITERATE` | string | `"NO"` | `status_messages_config.json` | `"YES"` = push the scan window's stop time forward on each retry. ⚠️ Present in `get_kafka_config.json` too, but `00_get_kafka.py` never reads it — a no-op there |
+| `START_FROM_LAST` | string | `"NO"` | `status_messages_config.json` | `"YES"` = resume from last committed offset instead of window start |
 
 **`MAX_RETRY_ATTEMPTS` vs `MAX_LISTEN_DURATION_HOURS`:** whichever limit is hit first
 stops the script.
@@ -240,16 +240,16 @@ Use this when publication can run late.
 
 ### 4.7 Behaviour Flags
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `ALLOW_NO_DATA` | string | `"YES"` | `"YES"` = exit cleanly if nothing arrives. `"NO"` = fail hard |
-| `ALLOW_ZERO_MESSAGES_PUBLISHED` 🆕 | string, `"YES"`/`"NO"` | `"NO"` | Accept a status message reporting `total_messages_published=0` — see below |
-| `WAIT_FOR_SUBMIT` | string | `"NO"` | `"YES"` = wait for an upstream submit signal before consuming |
-| `STREAMING_VERBOSE` | string bool | `"True"` | Detailed vs. minimal logging |
-| `STREAMING_STORE_MIDLAYER` | string bool | `"False"` | `"True"` = keep intermediate mid-layer data alongside final output |
-| `STREAMING_REPROCESS` | string bool | `"False"` | `"True"` = re-read messages even if offsets were already committed |
-| `STREAMING_PAGE_SIZE_LIMIT_BYTES` | string integer | `"8000"` | Max batch size per read page |
-| `COMMIT_CNT` | string integer | `"50"` | Commit Kafka offsets every N messages |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `ALLOW_NO_DATA` | string | `"YES"` | `status_messages_config.json` (also in `get_kafka_config.json`) | `"YES"` = exit cleanly if nothing arrives. `"NO"` = fail hard |
+| `ALLOW_ZERO_MESSAGES_PUBLISHED` 🆕 | string, `"YES"`/`"NO"` | `"NO"` | `status_messages_config.json` | Accept a status message reporting `total_messages_published=0` — see below |
+| `WAIT_FOR_SUBMIT` | string | `"NO"` | `status_messages_config.json` (also in `get_kafka_config.json`) | `"YES"` = wait for an upstream submit signal before consuming |
+| `STREAMING_VERBOSE` | string bool | `"True"` | `status_messages_config.json` (also in `get_kafka_config.json`) | Detailed vs. minimal logging |
+| `STREAMING_STORE_MIDLAYER` | string bool | `"False"` | `status_messages_config.json` (also in `get_kafka_config.json`) | `"True"` = keep intermediate mid-layer data alongside final output |
+| `STREAMING_REPROCESS` | string bool | `"False"` | `status_messages_config.json` | ⚠️ Not referenced in either `.py` script — likely consumed by the underlying DSF streaming framework library itself, not this script's code. `"True"` = re-read messages even if offsets were already committed |
+| `STREAMING_PAGE_SIZE_LIMIT_BYTES` | string integer | `"8000"` | `status_messages_config.json` | ⚠️ Same as above — not referenced in the script code, presumably framework-level. Max batch size per read page |
+| `COMMIT_CNT` | string integer | `"50"` | `status_messages_config.json` (also in `get_kafka_config.json`) | Commit Kafka offsets every N messages |
 
 **`ALLOW_ZERO_MESSAGES_PUBLISHED` 🆕 — detail**
 
@@ -277,33 +277,33 @@ doesn't get stuck failing (or burn the full retry window) on either side of the 
 
 ### 5.1 Kafka Connection
 
-| Parameter | Type | Example | Description |
-|---|---|---|---|
-| `KAFKA_USER` | object, keyed by mandator | `{"022": "admin"}` | Kafka username |
-| `STREAMING_KAFKA_BROKER` | object, keyed by mandator | `{"022": "localhost:9092"}` | Broker address |
-| `STREAMING_KAFKA_INFLOW_TOPIC` | object, keyed by mandator | `{"022": "business-topic"}` | Topic to consume **business** messages from |
+| Parameter | Type | Example | Config File | Description |
+|---|---|---|---|---|
+| `KAFKA_USER` | object, keyed by mandator | `{"022": "admin"}` | `get_kafka_config.json` | Kafka username |
+| `STREAMING_KAFKA_BROKER` | object, keyed by mandator | `{"022": "localhost:9092"}` | `get_kafka_config.json` | Broker address |
+| `STREAMING_KAFKA_INFLOW_TOPIC` | object, keyed by mandator | `{"022": "business-topic"}` | `get_kafka_config.json` | Topic to consume **business** messages from |
 
 ### 5.2 Avro / Schema Registry
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `AVRO_SCHEMA_REGISTRY` | string | — | Schema registry address |
-| `AVRO_SCHEMA_FILE` | string | `"LATEST"` | `"LATEST"` fetches the newest schema at startup; a pinned version number reprocesses older data |
-| `AVRO_COLUMNS` | string (comma list) | `""` | Columns to extract. Empty = all |
-| `INPUT_DATA` | string | `"AVRO"` | Format on the topic |
-| `OUTPUT_DATA` | string | `"JSON"` | Output file format (JSON = one object per line) |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `AVRO_SCHEMA_REGISTRY` | string | — | `get_kafka_config.json` | Schema registry address |
+| `AVRO_SCHEMA_FILE` | string | `"LATEST"` | `get_kafka_config.json` | `"LATEST"` fetches the newest schema at startup; a pinned version number reprocesses older data |
+| `AVRO_COLUMNS` | string (comma list) | `""` | `get_kafka_config.json` | Columns to extract. Empty = all |
+| `INPUT_DATA` | string | `"AVRO"` | `get_kafka_config.json` | Format on the topic |
+| `OUTPUT_DATA` | string | `"JSON"` | `get_kafka_config.json` | Output file format (JSON = one object per line) |
 
 ### 5.3 Time Window
 
 Same mechanics as the status-messages script (§4.3) — messages outside the window are
 never read.
 
-| Parameter | Type | Example | Description |
-|---|---|---|---|
-| `START_TS` | `HH:MM:SS` | `"16:00:00"` | Window start time-of-day |
-| `START_DT_OFFSET` | string integer | `"0"` | Days subtracted from `ASOF_DT` for start date |
-| `STOP_TS` | `HH:MM:SS` | `"16:00:00"` | Window end time-of-day |
-| `STOP_DT_OFFSET` | string integer | `"-1"` | Days subtracted from `ASOF_DT` for end date |
+| Parameter | Type | Example | Config File | Description |
+|---|---|---|---|---|
+| `START_TS` | `HH:MM:SS` | `"16:00:00"` | `get_kafka_config.json` | Window start time-of-day |
+| `START_DT_OFFSET` | string integer | `"0"` | `get_kafka_config.json` | Days subtracted from `ASOF_DT` for start date |
+| `STOP_TS` | `HH:MM:SS` | `"16:00:00"` | `get_kafka_config.json` | Window end time-of-day |
+| `STOP_DT_OFFSET` | string integer | `"-1"` | `get_kafka_config.json` | Days subtracted from `ASOF_DT` for end date |
 
 Per-mandator override via `LOCATION_TIME_WINDOW` (same shape as §4.3).
 
@@ -315,19 +315,19 @@ Per-mandator override via `LOCATION_TIME_WINDOW` (same shape as §4.3).
 
 ### 5.4 Output Format
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `SEPERATOR` | string | `"\|"` | Column delimiter |
-| `DECIMAL_CONV` | string | `"2"` | `"2"` = disabled. `"YES"` = convert decimals |
-| `DECIMAL_SCALE` | string integer | `"2"` | Decimal places when enabled |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `SEPERATOR` | string | `"\|"` | `get_kafka_config.json` | Column delimiter |
+| `DECIMAL_CONV` | string | `"2"` | `get_kafka_config.json` | `"2"` = disabled. `"YES"` = convert decimals |
+| `DECIMAL_SCALE` | string integer | `"2"` | `get_kafka_config.json` | Decimal places when enabled |
 
 ### 5.5 Message Filtering
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `PRE_FILTER_VALUES` 🆕 | object `{field: value \| [values]}` | `{}` | Extra filter on every consumed message — see below |
-| `VALIDATION_FILTER_VALUES` 🆕 | object, same shape | `{}` | Filters only what *counts*, not what's written — see below |
-| `METADATA_FILTER_ALLOW_NULL_FIELDS` 🆕 | list of strings | `[]` | Which metadata filter fields may be null without excluding the message — see [§6](#6-shared-metadata-bridge-parameters) |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `PRE_FILTER_VALUES` 🆕 | object `{field: value \| [values]}` | `{}` | `get_kafka_config.json` | Extra filter on every consumed message — see below |
+| `VALIDATION_FILTER_VALUES` 🆕 | object, same shape | `{}` | `get_kafka_config.json` | Filters only what *counts*, not what's written — see below |
+| `METADATA_FILTER_ALLOW_NULL_FIELDS` 🆕 | list of strings | `[]` | `get_kafka_config.json` | Which metadata filter fields may be null without excluding the message — see [§6](#6-shared-metadata-bridge-parameters) |
 
 **`PRE_FILTER_VALUES` 🆕 — detail**
 
@@ -383,13 +383,13 @@ acceptance time showing rows written vs. rows validated vs. expected.
 
 ### 5.6 Retry, Timing & Over-Count Handling
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `MAX_LISTEN_DURATION_HOURS` | string float | `"2"` | Total time allowed before giving up |
-| `RETRY_WAIT_SECONDS` | string integer | `"300"` | Sleep between retry attempts |
-| `STABLE_COUNT_REQUIRED_ATTEMPTS` 🆕 | string integer | `"2"` | (`STABILITY` mode) consecutive identical reads required before accepting |
-| `OVER_COUNT_BEHAVIOR` 🆕 | string, `"STABILITY"` \| `"WAIT"` | `"STABILITY"` | How to decide when to accept once actual ≥ expected — see below |
-| `OVER_COUNT_WAIT_MINUTES` 🆕 | string integer | `"5"` | (`WAIT` mode only) minutes to wait after first crossing expected |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `MAX_LISTEN_DURATION_HOURS` | string float | `"2"` | `get_kafka_config.json` | Total time allowed before giving up |
+| `RETRY_WAIT_SECONDS` | string integer | `"300"` | `get_kafka_config.json` | Sleep between retry attempts |
+| `STABLE_COUNT_REQUIRED_ATTEMPTS` 🆕 | string integer | `"2"` | `get_kafka_config.json` | (`STABILITY` mode) consecutive identical reads required before accepting |
+| `OVER_COUNT_BEHAVIOR` 🆕 | string, `"STABILITY"` \| `"WAIT"` | `"STABILITY"` | `get_kafka_config.json` | How to decide when to accept once actual ≥ expected — see below |
+| `OVER_COUNT_WAIT_MINUTES` 🆕 | string integer | `"5"` | `get_kafka_config.json` | (`WAIT` mode only) minutes to wait after first crossing expected |
 
 **`STABLE_COUNT_REQUIRED_ATTEMPTS` 🆕 — detail**
 
@@ -435,44 +435,59 @@ changing indefinitely — `STABILITY` might never see two identical reads in a r
 
 ### 5.7 Behaviour Flags
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `ALLOW_NO_DATA` | string | `"YES"` | `"YES"` = exit cleanly if nothing found. `"NO"` = fail hard |
-| `WAIT_FOR_SUBMIT` | string | `"NO"` | `"YES"` = wait for the upstream status message before starting |
-| `VALIDATE_TOPIC_MANDATOR` | string | `"NO"` | `"YES"` = verify topic has data for the expected mandator first |
-| `STREAMING_TIMESTAMP_KEY` | string | `"std_enqueueTime"` | Payload field used as the message timestamp |
-| `STREAMING_TIMESTAMP_FORMAT` | string | `"%Y-%m-%dT%H:%M:%S%z"` | Format string for parsing that field |
-| `STREAMING_WAIT_UNTIL_DONE_HOURS` | string integer | `"1"` | Max hours to wait for upstream completion signal |
-| `STREAMING_IDLE_TIMEOUT_MINUTES` | string integer | `"2"` | Stop consuming after this many minutes of silence |
-| `STREAMING_VERBOSE` | string bool | `"True"` | Detailed vs. minimal logging |
-| `STREAMING_STORE_MIDLAYER` | string bool | `"False"` | Keep intermediate mid-layer data |
-| `COMMIT_CNT` | string integer | `"50"` | Commit offsets every N messages |
+| Parameter | Type | Default | Config File | Description |
+|---|---|---|---|---|
+| `ALLOW_NO_DATA` | string | `"YES"` | `get_kafka_config.json` (also in `status_messages_config.json`) | `"YES"` = exit cleanly if nothing found. `"NO"` = fail hard |
+| `WAIT_FOR_SUBMIT` | string | `"NO"` | `get_kafka_config.json` (also in `status_messages_config.json`) | `"YES"` = wait for the upstream status message before starting |
+| `VALIDATE_TOPIC_MANDATOR` | string | `"NO"` | `get_kafka_config.json` (also in `status_messages_config.json`) | `"YES"` = verify topic has data for the expected mandator first |
+| `STREAMING_TIMESTAMP_KEY` | string | `"std_enqueueTime"` | `get_kafka_config.json` (also in `status_messages_config.json`) | Payload field used as the message timestamp |
+| `STREAMING_TIMESTAMP_FORMAT` | string | `"%Y-%m-%dT%H:%M:%S%z"` | `get_kafka_config.json` (also in `status_messages_config.json`) | Format string for parsing that field |
+| `STREAMING_WAIT_UNTIL_DONE_HOURS` | string integer | `"1"` | `get_kafka_config.json` (also in `status_messages_config.json`) | Max hours to wait for upstream completion signal |
+| `STREAMING_IDLE_TIMEOUT_MINUTES` | string integer | `"2"` | `get_kafka_config.json` (also in `status_messages_config.json`) | Stop consuming after this many minutes of silence |
+| `STREAMING_VERBOSE` | string bool | `"True"` | `get_kafka_config.json` (also in `status_messages_config.json`) | Detailed vs. minimal logging |
+| `STREAMING_STORE_MIDLAYER` | string bool | `"False"` | `get_kafka_config.json` (also in `status_messages_config.json`) | Keep intermediate mid-layer data |
+| `COMMIT_CNT` | string integer | `"50"` | `get_kafka_config.json` (also in `status_messages_config.json`) | Commit offsets every N messages |
 
 ---
 
 ## 6. Shared Metadata-Bridge Parameters
 
-These parameters describe the **handoff file** between the two scripts and must be set
-**identically in both config files** — `status_messages_config.json` writes the file
-using these settings, and `get_kafka_config.json` reads it back using the same settings.
+These parameters describe the **handoff file** between the two scripts. Only two of
+them are actually *read* on both sides — the rest are read only by `00_get_kafka.py`,
+even though several are also physically present (unused) in `status_messages_config.json`
+for human-readability/consistency. `kafka_trigger_status_messages.py` writes the
+metadata file using a fixed, hardcoded set of field names (`mandator`, `business_date`,
+`reconciliation_group_id`, etc.) — it does not consult `METADATA_FILTER_COLUMNS`,
+`METADATA_FILTER_FIELD_MAP`, `METADATA_COUNT_FIELD`, `METADATA_COUNT_TOLERANCE_PCT`, or
+`LOCATION_TOLERANCE_PCT` to decide what to write. Verified directly against the code
+(`CONFIG.get(...)` / `CONFIG[...]` calls in both `.py` files) — not just the prose docs.
 
-| Parameter | Type | Default | Appears in |
-|---|---|---|---|
-| `STATUS_MESSAGES_FEED_NAME` | string | `"CPSB4Q00"` | both |
-| `METADATA_FILE_SUFFIX` | string | `"_metadata.txt"` | both |
-| `METADATA_OUTPUT_PATH` | string | `""` (empty) | status-messages config only |
-| `METADATA_FILTER_COLUMNS` | list of strings | `["mandatorCode", "businessDate", "reconciliationGroupId"]` | both |
-| `METADATA_FILTER_FIELD_MAP` | object | see below | both |
-| `METADATA_FILTER_ALLOW_NULL_FIELDS` 🆕 | list of strings | `[]` | get-kafka config only |
-| `METADATA_COUNT_FIELD` | string | `"total_messages_published"` | both |
-| `METADATA_COUNT_TOLERANCE_PCT` | string float | `"10"` | both |
-| `LOCATION_TOLERANCE_PCT` | object, keyed by mandator | `{"022": "10"}` | both |
+| Parameter | Type | Default | Config File (functionally read) | Description |
+|---|---|---|---|---|
+| `STATUS_MESSAGES_FEED_NAME` | string | `"CPSB4Q00"` | `get_kafka_config.json` only | Must match the `FEED_NAME` hardcoded in `kafka_trigger_status_messages.py` (line ~654) — not read from `status_messages_config.json` at all |
+| `METADATA_FILE_SUFFIX` | string | `"_metadata.txt"` | **both** (genuinely read on both sides) | |
+| `METADATA_OUTPUT_PATH` | string | `""` (empty) | `status_messages_config.json` only | |
+| `METADATA_FILTER_COLUMNS` | list of strings | `["mandatorCode", "businessDate", "reconciliationGroupId"]` | `get_kafka_config.json` only | Also present in `status_messages_config.json` but not read there |
+| `METADATA_FILTER_FIELD_MAP` | object | see below | `get_kafka_config.json` only | Also present in `status_messages_config.json` but not read there |
+| `METADATA_FILTER_ALLOW_NULL_FIELDS` 🆕 | list of strings | `[]` | `get_kafka_config.json` only | |
+| `METADATA_COUNT_FIELD` | string | `"total_messages_published"` | `get_kafka_config.json` only | Also present in `status_messages_config.json` but not read there |
+| `METADATA_COUNT_TOLERANCE_PCT` | string float | `"10"` | `get_kafka_config.json` only | Also present in `status_messages_config.json` but not read there |
+| `LOCATION_TOLERANCE_PCT` | object, keyed by mandator | `{"022": "10"}` | `get_kafka_config.json` only | Also present in `status_messages_config.json` but not read there |
 
 ### `STATUS_MESSAGES_FEED_NAME` + `METADATA_FILE_SUFFIX`
 
 Together they build the metadata filename:
 `{STATUS_MESSAGES_FEED_NAME}_{ASOF_DT}{METADATA_FILE_SUFFIX}` → e.g.
-`CPSB4Q00_2026-04-22_metadata.txt`. Must match on both sides.
+`CPSB4Q00_2026-04-22_metadata.txt`. The two sides arrive at the same filename through
+**different mechanisms**, so the *value* must match even though the *key* isn't shared:
+
+- `kafka_trigger_status_messages.py` builds it from `FEED_NAME`, which is hardcoded in
+  the script (`FEED_NAME = "CPSB4Q00"`, line ~654) — it never reads
+  `STATUS_MESSAGES_FEED_NAME` from `status_messages_config.json`.
+- `00_get_kafka.py` builds it from `STATUS_MESSAGES_FEED_NAME` in `get_kafka_config.json`.
+
+`METADATA_FILE_SUFFIX` is the one part of this pair that's genuinely read from config on
+both sides.
 
 ### `METADATA_OUTPUT_PATH`
 
