@@ -1,0 +1,352 @@
+<title>Trigger-Based Scheduling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f5f8;
+    --surface: #ffffff;
+    --surface-alt: #eef1f6;
+    --ink: #1b2440;
+    --ink-soft: #545e70;
+    --hairline: #dde2ea;
+
+    --navy: #17223f;
+    --navy-soft: #2a3a63;
+    --blue: #1f6fb2;
+    --blue-soft: #eaf2fa;
+
+    --red: #a03a2f;
+    --red-soft: #fbebe8;
+    --red-ink: #7c2c22;
+
+    --green: #1f7a4c;
+    --green-soft: #e8f5ec;
+    --green-ink: #16603b;
+
+    --shadow: 0 1px 2px rgba(23,34,63,0.06), 0 8px 24px -12px rgba(23,34,63,0.18);
+    --font-display: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10141f;
+      --surface: #171d2c;
+      --surface-alt: #1d2436;
+      --ink: #e7eaf2;
+      --ink-soft: #9aa3ba;
+      --hairline: #2a3247;
+
+      --navy: #0c1120;
+      --navy-soft: #1c2740;
+      --blue: #5ea3dc;
+      --blue-soft: #1a2c40;
+
+      --red: #e08a7c;
+      --red-soft: #2e1f22;
+      --red-ink: #f0aea3;
+
+      --green: #6fcf9c;
+      --green-soft: #16281f;
+      --green-ink: #8fe0b4;
+
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 30px -14px rgba(0,0,0,0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10141f;
+    --surface: #171d2c;
+    --surface-alt: #1d2436;
+    --ink: #e7eaf2;
+    --ink-soft: #9aa3ba;
+    --hairline: #2a3247;
+
+    --navy: #0c1120;
+    --navy-soft: #1c2740;
+    --blue: #5ea3dc;
+    --blue-soft: #1a2c40;
+
+    --red: #e08a7c;
+    --red-soft: #2e1f22;
+    --red-ink: #f0aea3;
+
+    --green: #6fcf9c;
+    --green-soft: #16281f;
+    --green-ink: #8fe0b4;
+
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 12px 30px -14px rgba(0,0,0,0.6);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: clamp(16px, 3vw, 40px);
+    gap: 14px;
+  }
+
+  .meta {
+    width: min(1180px, 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    color: var(--ink-soft);
+    font-size: 0.8rem;
+  }
+  .meta strong { color: var(--ink); font-family: var(--font-display); font-weight: 700; }
+
+  .slide {
+    width: min(1180px, 100%);
+    aspect-ratio: 16 / 9;
+    background: var(--surface);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--hairline);
+  }
+
+  .slide-header {
+    background: linear-gradient(135deg, var(--navy), var(--navy-soft));
+    padding: clamp(14px, 2.2vw, 26px) clamp(20px, 3vw, 34px) clamp(12px, 1.8vw, 20px);
+    position: relative;
+  }
+  .slide-header::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 4px;
+    background: var(--blue);
+  }
+  .slide-header h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(1.1rem, 2.4vw, 1.7rem);
+    color: #fff;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .slide-header p {
+    margin: 0;
+    color: #b9c6de;
+    font-size: clamp(0.72rem, 1.1vw, 0.92rem);
+    font-style: italic;
+  }
+
+  .slide-body {
+    flex: 1;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: clamp(8px, 1.4vw, 14px);
+    padding: clamp(12px, 1.8vw, 20px) clamp(20px, 3vw, 34px) clamp(14px, 2vw, 22px);
+    min-height: 0;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(10px, 1.6vw, 18px);
+  }
+  .card {
+    border-radius: 10px;
+    padding: clamp(10px, 1.4vw, 16px) clamp(12px, 1.6vw, 18px);
+    border-left: 4px solid;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .card.previous { background: var(--red-soft); border-color: var(--red); }
+  .card.current  { background: var(--green-soft); border-color: var(--green); }
+  .card h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(0.72rem, 1.15vw, 0.92rem);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .card.previous h2 { color: var(--red-ink); }
+  .card.current h2 { color: var(--green-ink); }
+  .card ul {
+    margin: 0;
+    padding-left: 1.05em;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .card li {
+    font-size: clamp(0.6rem, 0.9vw, 0.78rem);
+    line-height: 1.24;
+    color: var(--ink);
+  }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(10px, 1.6vw, 18px);
+  }
+  .kpi {
+    background: var(--surface-alt);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    padding: clamp(8px, 1.2vw, 13px) clamp(12px, 1.6vw, 16px);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .kpi .label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(0.6rem, 0.85vw, 0.7rem);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .kpi .value {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: clamp(0.95rem, 1.7vw, 1.3rem);
+    color: var(--blue);
+  }
+  .kpi.green .value { color: var(--green-ink); }
+  .kpi.red .value { color: var(--red-ink); }
+
+  .table-wrap {
+    min-height: 0;
+    max-height: 100%;
+    overflow: auto;
+    border-radius: 10px;
+    border: 1px solid var(--hairline);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: clamp(0.62rem, 0.95vw, 0.8rem);
+  }
+  thead th {
+    background: var(--navy);
+    color: #fff;
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: clamp(0.56rem, 0.78vw, 0.66rem);
+    padding: clamp(5px, 0.9vw, 9px) 8px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+  }
+  thead th:first-child { text-align: left; }
+  tbody td {
+    padding: clamp(4px, 0.8vw, 8px) 8px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    border-top: 1px solid var(--hairline);
+  }
+  tbody td:first-child {
+    text-align: left;
+    font-family: var(--font-body);
+    font-weight: 600;
+  }
+  tbody tr:nth-child(even) { background: var(--surface-alt); }
+  tbody td.avoided { color: var(--green-ink); font-weight: 700; }
+  tbody td.occurred { color: var(--red-ink); font-weight: 700; }
+
+  .footnote {
+    width: min(1180px, 100%);
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .footnote b { color: var(--ink); }
+</style>
+
+<div class="meta">
+  <span><strong>Preview</strong> — matches the .pptx layout</span>
+  <span>1 slide · 16:9</span>
+</div>
+
+<div class="slide">
+  <div class="slide-header">
+    <h1>From Time-Based to Trigger-Based Scheduling</h1>
+    <p>Automated, data-driven job starts — fewer failures, earlier delivery, incidents avoided</p>
+  </div>
+
+  <div class="slide-body">
+    <div class="cards">
+      <div class="card previous">
+        <h2>Previous — Time-Based</h2>
+        <ul>
+          <li>Jobs fixed to run at a set clock time, regardless of data readiness</li>
+          <li>If upstream data hadn't arrived yet, the job still fired — and failed</li>
+          <li>Every failure created a production incident, even when data simply arrived late</li>
+        </ul>
+      </div>
+      <div class="card current">
+        <h2>Current — Trigger-Based</h2>
+        <ul>
+          <li>Jobs start automatically the moment upstream data actually arrives</li>
+          <li>No fixed clock time — no more "fired too early, no data" failures</li>
+          <li>Runs as early as data allows, and skips the incident entirely when the old fixed time would have been missed</li>
+          <li>Absorbs upstream delays cleanly — under the old time-bound configs, a delayed upstream feed meant two days' data landing and running together in the same cycle, requiring L2 to manually split files by date and reprocess; with multiple mandates hitting this at once, it became a massive manual effort</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi">
+        <span class="label">Avg. Early Start</span>
+        <span class="value">2h 28m earlier</span>
+      </div>
+      <div class="kpi">
+        <span class="label">Avg. Upstream Delay Reduced</span>
+        <span class="value">1h 53m faster</span>
+      </div>
+      <div class="kpi red">
+        <span class="label">Prior Monthly Incidents (avg)</span>
+        <span class="value">55 / month, all mandates</span>
+      </div>
+      <div class="kpi green">
+        <span class="label">Incidents Avoided</span>
+        <span class="value">27 across 6 mandates</span>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Mandate</th>
+            <th>Previous Start</th>
+            <th>New Start</th>
+            <th>Avg. Improvement (Early)</th>
+            <th>Avg. Upstream Delay</th>
+            <th>Incidents Occurred<br>(Late Arrival / Out-of-Time-Bound)</th>
+            <th>Incidents Avoided</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>MND-EQ-01 (Equities)</td><td>06:45</td><td>04:10</td><td>2h 35m</td><td>1h 50m</td><td class="occurred">9</td><td class="avoided">4</td></tr>
+          <tr><td>MND-FI-02 (Fixed Income)</td><td>07:15</td><td>05:00</td><td>2h 15m</td><td>2h 05m</td><td class="occurred">12</td><td class="avoided">6</td></tr>
+          <tr><td>MND-FX-03 (FX)</td><td>06:30</td><td>04:45</td><td>1h 45m</td><td>1h 20m</td><td class="occurred">6</td><td class="avoided">2</td></tr>
+          <tr><td>MND-CR-04 (Credit)</td><td>07:00</td><td>04:30</td><td>2h 30m</td><td>1h 55m</td><td class="occurred">10</td><td class="avoided">5</td></tr>
+          <tr><td>MND-EQ-05 (Equities)</td><td>06:50</td><td>03:55</td><td>2h 55m</td><td>2h 10m</td><td class="occurred">8</td><td class="avoided">3</td></tr>
+          <tr><td>MND-MM-06 (Money Mkt)</td><td>07:10</td><td>04:20</td><td>2h 50m</td><td>2h 00m</td><td class="occurred">10</td><td class="avoided">7</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<p class="footnote"><b>Sample data</b> — mandate names, times and figures are placeholders. Replace with your real numbers before presenting; the actual file is <b>Trigger_Based_vs_Time_Based.pptx</b>, fully editable in PowerPoint.</p>
