@@ -145,8 +145,8 @@
   .slide-body {
     flex: 1;
     display: grid;
-    grid-template-rows: auto auto 1fr;
-    gap: clamp(8px, 1.4vw, 14px);
+    grid-template-rows: auto auto auto 1fr;
+    gap: clamp(6px, 1vw, 10px);
     padding: clamp(12px, 1.8vw, 20px) clamp(20px, 3vw, 34px) clamp(14px, 2vw, 22px);
     min-height: 0;
   }
@@ -219,6 +219,22 @@
   }
   .kpi.green .value { color: var(--green-ink); }
   .kpi.red .value { color: var(--red-ink); }
+
+  .table-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(0.72rem, 1.1vw, 0.9rem);
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .table-title span {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 0.85em;
+    margin-left: 0.4em;
+  }
 
   .table-wrap {
     min-height: 0;
@@ -310,7 +326,7 @@
         <span class="value">2h 28m earlier</span>
       </div>
       <div class="kpi">
-        <span class="label">Avg. Upstream Delay Reduced</span>
+        <span class="label">Avg. Upstream Delay (When Late)</span>
         <span class="value">1h 53m faster</span>
       </div>
       <div class="kpi red">
@@ -323,6 +339,7 @@
       </div>
     </div>
 
+    <div class="table-title">CPS – Datahub <span>(go-live: 21/07/2026)</span></div>
     <div class="table-wrap">
       <table>
         <thead>
@@ -332,17 +349,17 @@
             <th>New Start</th>
             <th>Avg. Improvement (Early)</th>
             <th>Avg. Upstream Delay</th>
-            <th>Incidents Occurred<br>(Late Arrival / Out-of-Time-Bound)</th>
             <th>Incidents Avoided</th>
+            <th>Incidents Occurred<br>(Late Arrival / Out-of-Time-Bound)</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>MND-EQ-01 (Equities)</td><td>06:45</td><td>04:10</td><td>2h 35m</td><td>1h 50m</td><td class="occurred">9</td><td class="avoided">4</td></tr>
-          <tr><td>MND-FI-02 (Fixed Income)</td><td>07:15</td><td>05:00</td><td>2h 15m</td><td>2h 05m</td><td class="occurred">12</td><td class="avoided">6</td></tr>
-          <tr><td>MND-FX-03 (FX)</td><td>06:30</td><td>04:45</td><td>1h 45m</td><td>1h 20m</td><td class="occurred">6</td><td class="avoided">2</td></tr>
-          <tr><td>MND-CR-04 (Credit)</td><td>07:00</td><td>04:30</td><td>2h 30m</td><td>1h 55m</td><td class="occurred">10</td><td class="avoided">5</td></tr>
-          <tr><td>MND-EQ-05 (Equities)</td><td>06:50</td><td>03:55</td><td>2h 55m</td><td>2h 10m</td><td class="occurred">8</td><td class="avoided">3</td></tr>
-          <tr><td>MND-MM-06 (Money Mkt)</td><td>07:10</td><td>04:20</td><td>2h 50m</td><td>2h 00m</td><td class="occurred">10</td><td class="avoided">7</td></tr>
+          <tr><td>MND-EQ-01 (Equities)</td><td>06:45</td><td>04:10</td><td>2h 35m</td><td>1h 50m</td><td class="avoided">4</td><td class="occurred">9</td></tr>
+          <tr><td>MND-FI-02 (Fixed Income)</td><td>07:15</td><td>05:00</td><td>2h 15m</td><td>2h 05m</td><td class="avoided">6</td><td class="occurred">12</td></tr>
+          <tr><td>MND-FX-03 (FX)</td><td>06:30</td><td>04:45</td><td>1h 45m</td><td>1h 20m</td><td class="avoided">2</td><td class="occurred">6</td></tr>
+          <tr><td>MND-CR-04 (Credit)</td><td>07:00</td><td>04:30</td><td>2h 30m</td><td>1h 55m</td><td class="avoided">5</td><td class="occurred">10</td></tr>
+          <tr><td>MND-EQ-05 (Equities)</td><td>06:50</td><td>03:55</td><td>2h 55m</td><td>2h 10m</td><td class="avoided">3</td><td class="occurred">8</td></tr>
+          <tr><td>MND-MM-06 (Money Mkt)</td><td>07:10</td><td>04:20</td><td>2h 50m</td><td>2h 00m</td><td class="avoided">7</td><td class="occurred">10</td></tr>
         </tbody>
       </table>
     </div>
